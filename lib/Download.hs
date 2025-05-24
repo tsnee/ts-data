@@ -1,28 +1,34 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DerivingVia       #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Download (CsvOctetStream(..), download) where
 
-import Prelude
+import           Prelude
 
 import qualified Data.ByteString.Lazy.Char8 as BL8
-import Data.Csv (decodeByName)
-import Data.Either.Combinators (maybeToRight)
-import Data.List (unsnoc)
-import Data.Maybe (fromMaybe)
-import Data.Proxy (Proxy (..))
-import qualified Data.Text as T
-import Data.Time (Day(..))
-import Data.Time.Calendar.Month (Month(..))
-import Data.Time.Format (defaultTimeLocale, parseTimeM)
-import Data.Vector (toList)
-import Network.HTTP.Client (newManager, managerModifyRequest)
-import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Servant.API (Accept, Capture, Get, MimeUnrender(..), OctetStream, QueryParam, (:>))
-import Servant.Client (BaseUrl(..), ClientM, Scheme(..), client, mkClientEnv, runClientM)
-import Types (ClubPerformanceReport(..), ClubPerformanceResult(..), Format(..), ProgramYear(..))
+import           Data.Csv                   (decodeByName)
+import           Data.Either.Combinators    (maybeToRight)
+import           Data.List                  (unsnoc)
+import           Data.Maybe                 (fromMaybe)
+import           Data.Proxy                 (Proxy (..))
+import qualified Data.Text                  as T
+import           Data.Time                  (Day (..))
+import           Data.Time.Calendar.Month   (Month (..))
+import           Data.Time.Format           (defaultTimeLocale, parseTimeM)
+import           Data.Vector                (toList)
+import           Network.HTTP.Client        (managerModifyRequest, newManager)
+import           Network.HTTP.Client.TLS    (tlsManagerSettings)
+import           Servant.API                (Accept, Capture, Get,
+                                             MimeUnrender (..), OctetStream,
+                                             QueryParam, (:>))
+import           Servant.Client             (BaseUrl (..), ClientM, Scheme (..),
+                                             client, mkClientEnv, runClientM)
+import           Types.ClubPerformanceReport (ClubPerformanceReport (..))
+import           Types.ClubPerformanceResult (ClubPerformanceResult (..))
+import           Types.Format (Format (..))
+import Types.ProgramYear (ProgramYear (..))
 
 debug :: Bool
 debug = False
@@ -39,25 +45,25 @@ parseFooter footer = do
 
 newtype CsvOctetStream = CsvOctetStream OctetStream
   deriving Accept via OctetStream
-instance MimeUnrender CsvOctetStream (Day, [ClubPerformanceResult]) where
+instance MimeUnrender CsvOctetStream ((Month, Day), [ClubPerformanceResult]) where
   mimeUnrender _ bytes = do
     let rows = BL8.lines bytes
     let (rawCsv, footer) = fromMaybe ([], "error") $ unsnoc rows
     (_, parsedCsv) <- decodeByName $ BL8.unlines rawCsv
-    (_, asOf)      <- parseFooter  $ BL8.unpack footer
-    pure (asOf, toList parsedCsv)
+    dates          <- parseFooter  $ BL8.unpack footer
+    pure (dates, toList parsedCsv)
 
 type ClubPerformanceAPI = Capture "programYear" ProgramYear :> "export.aspx" :>
   QueryParam "type" Format :> QueryParam "report" ClubPerformanceReport :>
-  Get '[CsvOctetStream] (Day, [ClubPerformanceResult])
+  Get '[CsvOctetStream] ((Month, Day), [ClubPerformanceResult])
 
 clubPerformanceApi :: Proxy ClubPerformanceAPI
 clubPerformanceApi = Proxy
 
-downloadClubPerformanceApi :: ProgramYear -> Maybe Format -> Maybe ClubPerformanceReport -> ClientM (Day, [ClubPerformanceResult])
+downloadClubPerformanceApi :: ProgramYear -> Maybe Format -> Maybe ClubPerformanceReport -> ClientM ((Month, Day), [ClubPerformanceResult])
 downloadClubPerformanceApi = client clubPerformanceApi
 
-download :: ClubPerformanceReport -> IO (Either T.Text (Day, [ClubPerformanceResult]))
+download :: ClubPerformanceReport -> IO (Either T.Text ((Month, Day), [ClubPerformanceResult]))
 download clubPerformance@ClubPerformanceReport { format, programYear } = do
   let logHeaders req = do
         print $ show req

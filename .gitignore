@@ -1,2 +1,3 @@
+*.sqlite
 .*.swp
 dist-newstyle/
