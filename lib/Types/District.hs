@@ -10,6 +10,6 @@ import Database.SQLite.Simple.ToField (ToField (..))
 import TextShow (TextShow, showb)
 
 newtype District = District Int
-    deriving (CSV.FromField, FromField, ToField, Show)
+  deriving (CSV.FromField, FromField, Show, ToField)
 instance TextShow District where
-    showb (District i) = showb i
+  showb (District i) = showb i

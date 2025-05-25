@@ -10,4 +10,4 @@ import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
 
 newtype Area = Area Int
-    deriving (CSV.FromField, FromField, ToField, Read, Show)
+  deriving (CSV.FromField, FromField, Read, Show, ToField)

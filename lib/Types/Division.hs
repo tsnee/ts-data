@@ -16,13 +16,13 @@ import TextShow (TextShow, fromString, showb, showt)
 import Types.SqlParsing (parseTextField)
 
 newtype Division = Division Char
-    deriving (CSV.FromField, Show)
+  deriving (CSV.FromField, Show)
 instance FromField Division where
-    fromField = parseTextField parseDivision "Division"
-      where
-        parseDivision :: T.Text -> Maybe Division
-        parseDivision d = Division <$> (headMay . T.unpack) d
+  fromField = parseTextField parseDivision "Division"
+   where
+    parseDivision :: T.Text -> Maybe Division
+    parseDivision d = Division <$> (headMay . T.unpack) d
 instance TextShow Division where
-    showb = fromString . show
+  showb = fromString . show
 instance ToField Division where
-    toField = SQLText . showt
+  toField = SQLText . showt

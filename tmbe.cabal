@@ -62,11 +62,14 @@ library
     exposed-modules:
         Download,
         PersistenceStore.Class,
-        PersistenceStore.SQLite,
+        PersistenceStore.SQLite.Class,
+        PersistenceStore.SQLite.ClubPerformanceRow,
+        PersistenceStore.SQLite.ClubRow,
         Types.Area,
-        Types.ClubStatus,
+        Types.ClubNumber,
         Types.ClubPerformanceReport,
-        Types.ClubPerformanceResult,
+        Types.ClubPerformanceReportSpec,
+        Types.ClubStatus,
         Types.DistinguishedStatus,
         Types.District,
         Types.Division,
@@ -81,7 +84,7 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21.0.0,
+        base ^>=4.21,
         basic-prelude ^>=0.7.0,
         bytestring ^>=0.12.0.2,
         cassava ^>=0.5.3.2,
@@ -104,12 +107,12 @@ library
     -- Base language which the package is written in.
     default-language: GHC2021
 
-executable create-table
+executable create-tables
     -- Import common warning flags.
     import:           warnings
 
     -- .hs or .lhs file containing the Main module.
-    main-is:          CreateTable.hs
+    main-is:          CreateTables.hs
 
     -- Modules included in this executable, other than Main.
     -- other-modules:
@@ -119,7 +122,7 @@ executable create-table
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21.0.0,
+        base ^>=4.21,
         sqlite-simple >=0.4.19.0,
         text ^>=2.1.2,
         tmbe
@@ -145,7 +148,7 @@ executable download-report
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21.0.0,
+        base ^>=4.21,
         tmbe
 
     -- Directories containing source files.
@@ -178,5 +181,5 @@ test-suite tmbe-test
 
     -- Test dependencies.
     build-depends:
-        base ^>=4.21.0.0,
+        base ^>=4.21,
         tmbe

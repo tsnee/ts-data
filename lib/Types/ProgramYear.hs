@@ -13,8 +13,8 @@ import Servant.API (ToHttpApiData, toUrlPiece)
 import TextShow (TextShow, fromString, showb, showt)
 
 newtype ProgramYear = ProgramYear Int
-    deriving (Generic, FromField, ToField)
+  deriving (FromField, Generic, ToField)
 instance TextShow ProgramYear where
-    showb (ProgramYear year) = showb year <> fromString "-" <> showb (year + 1)
+  showb (ProgramYear year) = showb year <> fromString "-" <> showb (year + 1)
 instance ToHttpApiData ProgramYear where
-    toUrlPiece = showt
+  toUrlPiece = showt

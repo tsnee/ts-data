@@ -1,0 +1,12 @@
+---
+indentation: 2
+column-limit: 100
+function-arrows: leading
+comma-style: leading
+record-brace-space: true
+single-constraint-parens: auto
+single-deriving-parens: always
+sort-constraints: true
+sort-derived-classes: true
+sort-deriving-clauses: true
+unicode: detect

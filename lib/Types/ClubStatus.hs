@@ -18,14 +18,14 @@ import TextShow (TextShow, fromString, showb, showt)
 import Types.SqlParsing (parseTextField)
 
 data ClubStatus = Active | Ineligible | Low | Suspended
-    deriving (Generic, Eq, Ord, Read, Show)
+  deriving (Eq, Generic, Ord, Read, Show)
 instance CSV.FromField ClubStatus where
-    parseField f = case readMay (T.strip $ T.pack $ BS.unpack f) of
-        Just status -> pure status
-        Nothing -> fail $ "Invalid ClubStatus: " <> BS.unpack f
+  parseField f = case readMay (T.strip $ T.pack $ BS.unpack f) of
+    Just status -> pure status
+    Nothing -> fail $ "Invalid ClubStatus: " <> BS.unpack f
 instance FromField ClubStatus where
-    fromField = parseTextField readMay "ClubStatus"
+  fromField = parseTextField readMay "ClubStatus"
 instance TextShow ClubStatus where
-    showb = fromString . show
+  showb = fromString . show
 instance ToField ClubStatus where
-    toField = SQLText . showt
+  toField = SQLText . showt

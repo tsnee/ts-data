@@ -1,0 +1,7 @@
+---
+cradle:
+  cabal:
+
+formatter:
+  command: "fourmolu"
+  arguments: []
