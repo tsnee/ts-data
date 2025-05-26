@@ -11,22 +11,19 @@ import Data.Text qualified as T
 import Database.SQLite.Simple (SQLData (..))
 import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
-import TextShow (TextShow, fromString, showb, showt)
 
 import Types.SqlParsing (parseTextField)
 
 data DistinguishedStatus = Smedly | Presidents | Select | Distinguished | NotYet
-  deriving (Read, Show)
+  deriving (Enum, Eq, Read, Show)
 instance CSV.FromField DistinguishedStatus where
   parseField f = case parseDistinguishedStatus (T.strip $ T.pack $ BS.unpack f) of
     Just status -> pure status
     Nothing -> fail $ "Invalid DistinguishedStatus: " <> BS.unpack f
 instance FromField DistinguishedStatus where
   fromField = parseTextField parseDistinguishedStatus "DistinguishedStatus"
-instance TextShow DistinguishedStatus where
-  showb = fromString . show
 instance ToField DistinguishedStatus where
-  toField = SQLText . showt
+  toField = SQLInteger . toEnum . fromEnum
 
 parseDistinguishedStatus :: T.Text -> Maybe DistinguishedStatus
 parseDistinguishedStatus s = case s of

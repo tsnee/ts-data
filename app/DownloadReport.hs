@@ -4,11 +4,12 @@ module Main where
 
 import Data.Foldable (traverse_)
 import Data.Proxy (Proxy (..))
+import TextShow (printT)
 
 import Download (download)
 import PersistenceStore.Class (save)
-import PersistenceStore.SQLite.Class (SQLite)
-import Types.ClubPerformanceReport (EnhancedClubPerformanceReport (..), MonthWrapper (..))
+import PersistenceStore.SQLite (SQLite)
+import Types.ClubPerformanceReport (EnhancedClubPerformanceReport (..))
 import Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..))
 import Types.District (District (..))
 import Types.Format (Format (..))
@@ -24,6 +25,8 @@ main = do
       traverse_ saveReport enhancedReports
      where
       saveReport :: EnhancedClubPerformanceReport -> IO ()
-      saveReport = save (Proxy :: Proxy SQLite)
+      saveReport r = do
+        printT r
+        save (Proxy :: Proxy SQLite) r
       enhancedReports :: [EnhancedClubPerformanceReport]
-      enhancedReports = (\report -> EnhancedClubPerformanceReport report asOf (MonthWrapper month)) <$> reports
+      enhancedReports = (\report -> EnhancedClubPerformanceReport report asOf month) <$> reports

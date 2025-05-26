@@ -61,10 +61,11 @@ library
     -- Modules exported by the library.
     exposed-modules:
         Download,
+        PersistenceStore.Analyzer,
         PersistenceStore.Class,
-        PersistenceStore.SQLite.Class,
-        PersistenceStore.SQLite.ClubPerformanceRow,
-        PersistenceStore.SQLite.ClubRow,
+        PersistenceStore.Metrics,
+        PersistenceStore.MetricValueRow,
+        PersistenceStore.SQLite,
         Types.Area,
         Types.ClubNumber,
         Types.ClubPerformanceReport,
@@ -125,6 +126,7 @@ executable create-tables
         base ^>=4.21,
         sqlite-simple >=0.4.19.0,
         text ^>=2.1.2,
+        text-show ^>=3.11.1,
         tmbe
 
     -- Directories containing source files.
@@ -149,6 +151,7 @@ executable download-report
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.21,
+        text-show ^>=3.11.1,
         tmbe
 
     -- Directories containing source files.

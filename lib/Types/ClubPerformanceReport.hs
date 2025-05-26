@@ -1,7 +1,8 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.ClubPerformanceReport (ClubPerformanceReport (..), EnhancedClubPerformanceReport (..), MonthWrapper (..)) where
+module Types.ClubPerformanceReport (ClubPerformanceReport (..), EnhancedClubPerformanceReport (..)) where
 
 import Prelude
 
@@ -10,16 +11,19 @@ import Data.Text qualified as T
 import Data.Time (Day)
 import Data.Time.Calendar.Month (Month (..))
 import Database.SQLite.Simple (FromRow (..), ToRow (..), field)
-import Database.SQLite.Simple.FromField (FromField (..), fromField)
 import Database.SQLite.Simple.ToField (ToField (..), toField)
 import GHC.Generics (Generic)
+import TextShow (TextShow, fromString, showb, showt)
 
-import Types.Area (Area)
-import Types.ClubNumber (ClubNumber)
-import Types.ClubStatus (ClubStatus)
+import PersistenceStore.Analyzer (Analyzer (..))
+import PersistenceStore.MetricValueRow (DbDate (..), MetricValueRow (..))
+import PersistenceStore.Metrics qualified as M
+import Types.Area (Area (..))
+import Types.ClubNumber (ClubNumber (..))
+import Types.ClubStatus (ClubStatus (..))
 import Types.DistinguishedStatus (DistinguishedStatus)
-import Types.District (District)
-import Types.Division (Division)
+import Types.District (District (..))
+import Types.Division (Division (..))
 
 data ClubPerformanceReport = ClubPerformanceReport
   { district :: !District
@@ -76,19 +80,124 @@ instance FromNamedRecord ClubPerformanceReport where
       <*> r .: "Off. List On Time"
       <*> r .: "Club Distinguished Status"
 
-newtype MonthWrapper = MonthWrapper Month
-instance FromField MonthWrapper where
-  fromField f = MonthWrapper . MkMonth <$> fromField f
-instance ToField MonthWrapper where
-  toField (MonthWrapper (MkMonth m)) = toField m
+instance Analyzer ClubPerformanceReport where
+  analyze clubId date cpr =
+    (
+      [ MetricValueRow
+          { clubId
+          , metricId = fromEnum M.District
+          , value = case district cpr of District d -> d
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.Area
+          , value = case area cpr of
+              AreaNotAssigned -> -1
+              Area a -> a
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.ClubStatus
+          , value = fromEnum (clubStatus cpr)
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.MembershipBase
+          , value = membershipBase cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.ActiveMembers
+          , value = activeMembers cpr
+          , date = DbDate date
+          }
+      , MetricValueRow {clubId, metricId = fromEnum M.GoalsMet, value = goalsMet cpr, date = DbDate date}
+      , MetricValueRow {clubId, metricId = fromEnum M.LevelOnes, value = level1s cpr, date = DbDate date}
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.LevelTwos
+          , value = (level2s cpr + moreLevel2s cpr)
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.LevelThrees
+          , value = level3s cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.HigherLevels
+          , value = (level4s5sOrDtms cpr + moreLevel4s5sOrDtms cpr)
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.NewMembers
+          , value = (newMembers cpr + moreNewMembers cpr)
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.OfficersTrainedRoundOne
+          , value = winterOfficersTrained cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.OfficersTrainedRoundTwo
+          , value = summerOfficersTrained cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.DuesOnTimeOctober
+          , value = duesPaidOctober cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.DuesOnTimeApril
+          , value = duesPaidApril cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.OfficersListOnTime
+          , value = officerListOnTime cpr
+          , date = DbDate date
+          }
+      , MetricValueRow
+          { clubId
+          , metricId = fromEnum M.DistinguishedStatus
+          , value = fromEnum (distinguishedStatus cpr)
+          , date = DbDate date
+          }
+      ]
+    ,
+      [ MetricValueRow
+          { clubId
+          , metricId = fromEnum M.Division
+          , value = showt (division cpr)
+          , date = DbDate date
+          }
+      , MetricValueRow {clubId, metricId = fromEnum M.ClubName, value = clubName cpr, date = DbDate date}
+      ]
+    )
 
 data EnhancedClubPerformanceReport = EnhancedClubPerformanceReport
   { cpr :: !ClubPerformanceReport
   , asOf :: !Day
-  , month :: !MonthWrapper
+  , month :: !Month
   }
-  deriving (Generic)
+  deriving (Generic, Show)
 instance FromRow EnhancedClubPerformanceReport where
-  fromRow = EnhancedClubPerformanceReport <$> fromRow <*> field <*> field
+  fromRow = EnhancedClubPerformanceReport <$> fromRow <*> field <*> (MkMonth <$> field)
+instance TextShow EnhancedClubPerformanceReport where
+  showb = fromString . show
 instance ToRow EnhancedClubPerformanceReport where
-  toRow EnhancedClubPerformanceReport {cpr, asOf, month} = toRow cpr <> [toField asOf] <> [toField month]
+  toRow EnhancedClubPerformanceReport {cpr, asOf, month = MkMonth m} = toRow cpr <> [toField asOf] <> [toField m]

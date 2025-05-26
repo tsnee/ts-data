@@ -11,18 +11,28 @@ import Database.SQLite.Simple (SQLData (..))
 import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
 import Safe (headMay)
-import TextShow (TextShow, fromString, showb, showt)
+import TextShow (Builder, TextShow, fromString, showb)
 
 import Types.SqlParsing (parseTextField)
 
-newtype Division = Division Char
-  deriving (CSV.FromField, Show)
+data Division = Division Char | DivisionNotAssigned
+  deriving (Eq)
+instance CSV.FromField Division where
+  parseField s
+    | s == "0D" = pure DivisionNotAssigned
+    | otherwise = Division <$> (CSV.parseField s :: CSV.Parser Char)
 instance FromField Division where
   fromField = parseTextField parseDivision "Division"
    where
     parseDivision :: T.Text -> Maybe Division
+    parseDivision "0" = pure DivisionNotAssigned
     parseDivision d = Division <$> (headMay . T.unpack) d
+instance Show Division where
+  show DivisionNotAssigned = "DivisionNotAssigned"
+  show (Division d) = [d]
 instance TextShow Division where
-  showb = fromString . show
+  showb DivisionNotAssigned = "DivisionNotAssigned" :: Builder
+  showb (Division d) = fromString [d]
 instance ToField Division where
-  toField = SQLText . showt
+  toField DivisionNotAssigned = SQLText "0"
+  toField (Division d) = SQLText $ T.pack [d]
