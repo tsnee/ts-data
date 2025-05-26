@@ -43,16 +43,16 @@ saveRow conn tableName (MetricValueRow {clubId, metricId, value, date}) =
       <> " (club_id, metric_id, value, date) "
       <> "SELECT :clubId, :metricId, :value, :date "
       <> "WHERE NOT EXISTS ("
-      <>    "SELECT 1 FROM "
-      <>    tableName
-      <>    " WHERE club_id = :clubId "
-      <>    "AND metric_id = :metricId "
-      <>    "AND value = :value "
-      <>    "AND date = ("
-      <>      "SELECT MAX(date) FROM "
-      <>      tableName
-      <>      " WHERE club_id = :clubId AND metric_id = :metricId AND date < :date"
-      <>    ")"
+      <> "SELECT 1 FROM "
+      <> tableName
+      <> " WHERE club_id = :clubId "
+      <> "AND metric_id = :metricId "
+      <> "AND value = :value "
+      <> "AND date = ("
+      <> "SELECT MAX(date) FROM "
+      <> tableName
+      <> " WHERE club_id = :clubId AND metric_id = :metricId AND date < :date"
+      <> ")"
       <> ");"
 
 instance Persistable SQLite EnhancedClubPerformanceReport IO () where

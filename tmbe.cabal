@@ -152,6 +152,7 @@ executable download-report
     build-depends:
         base ^>=4.21,
         text-show ^>=3.11.1,
+        time ^>=1.14,
         tmbe
 
     -- Directories containing source files.
@@ -185,4 +186,5 @@ test-suite tmbe-test
     -- Test dependencies.
     build-depends:
         base ^>=4.21,
+        time ^>=1.14,
         tmbe

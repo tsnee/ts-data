@@ -1,9 +1,10 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Download (CsvOctetStream (..), download) where
+module Download (CsvOctetStream (..), download, parseFooter) where
 
 import Prelude
 
@@ -14,8 +15,8 @@ import Data.List (unsnoc)
 import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T
-import Data.Time (Day (..))
-import Data.Time.Calendar.Month (Month (..))
+import Data.Time (Day (..), dayPeriod, periodFirstDay)
+import Data.Time.Calendar.Month (Month (..), addMonths, pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, parseTimeM)
 import Data.Vector (toList)
 import Network.HTTP.Client (managerModifyRequest, newManager)
@@ -30,21 +31,33 @@ import Types.ProgramYear (ProgramYear (..))
 debug :: Bool
 debug = False
 
+monthOnOrBefore :: Maybe Day -> Maybe Month -> Maybe Month
+monthOnOrBefore dayOfRecordM aboutMonthM = do
+  dayOfRecord <- dayOfRecordM
+  aboutMonth1970 <- aboutMonthM
+  let YearMonth _ ordinalMonth = aboutMonth1970
+      aboutMonth = YearMonth (dayPeriod dayOfRecord) (fromIntegral ordinalMonth) -- assume same year
+  if periodFirstDay aboutMonth > dayOfRecord
+    then
+      pure $ addMonths (-12) aboutMonth -- correct bad assumption
+    else
+      pure aboutMonth
+
 -- Month of Apr, As of 05/01/2025
 parseFooter :: String -> Either String (Month, Day)
 parseFooter footer = do
   let (monthPart, dayPart) = break (== ',') footer
-      monthM = parseTimeM True defaultTimeLocale "Month of %b" monthPart
-      asOfM = parseTimeM True defaultTimeLocale ", As of %m/%d/%C%y" dayPart
+      dayOfRecordM = parseTimeM True defaultTimeLocale ", As of %m/%d/%Y" dayPart
+      monthM = monthOnOrBefore dayOfRecordM $ parseTimeM True defaultTimeLocale "Month of %b" monthPart
   month <-
     maybeToRight
       ("Could not parse month from fragment '" <> monthPart <> "' of CSV footer '" <> footer <> "'.")
       monthM
-  asOf <-
+  dayOfRecord <-
     maybeToRight
       ("Could not parse date from fragment '" <> dayPart <> "' of CSV footer '" <> footer <> "'.")
-      asOfM
-  pure (month, asOf)
+      dayOfRecordM
+  pure (month, dayOfRecord)
 
 newtype CsvOctetStream = CsvOctetStream OctetStream
   deriving (Accept) via OctetStream
