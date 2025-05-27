@@ -8,7 +8,7 @@ import Data.Foldable (traverse_)
 import Database.SQLite.Simple (Connection, NamedParam (..), executeNamed, execute_, open)
 import TextShow (showt)
 
-import PersistenceStore.Metrics (Metrics)
+import PersistenceStore.ClubMetrics (ClubMetrics)
 import PersistenceStore.SQLite (databaseName)
 
 main :: IO ()
@@ -32,7 +32,7 @@ createMetricNameTable conn = do
     \( id   INTEGER NOT NULL PRIMARY KEY \
     \, name TEXT    NOT NULL \
     \);"
-  let insert :: Metrics -> IO ()
+  let insert :: ClubMetrics -> IO ()
       insert m =
         executeNamed
           conn

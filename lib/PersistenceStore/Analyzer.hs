@@ -4,9 +4,8 @@ import Data.List (List)
 import Data.Text (Text)
 import Data.Time (Day)
 
-import PersistenceStore.MetricValueRow (MetricValueRow (..))
-
+import PersistenceStore.ClubMetric (ClubMetric (..))
 import Types.ClubNumber (ClubNumber)
 
 class Analyzer a where
-  analyze :: ClubNumber -> Day -> a -> (List (MetricValueRow Int), List (MetricValueRow Text))
+  analyze :: ClubNumber -> Day -> a -> (List (ClubMetric Int), List (ClubMetric Text))

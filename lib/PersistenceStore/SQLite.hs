@@ -2,11 +2,12 @@
 {-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module PersistenceStore.SQLite (SQLite, databaseName) where
+module PersistenceStore.SQLite (databaseName, saveReport) where
 
 import Prelude
 
 import Data.Foldable (traverse_)
+import Data.Time (Day)
 import Data.Time.Calendar.Month (Month (..))
 import Database.SQLite.Simple (
   Connection,
@@ -19,19 +20,19 @@ import Database.SQLite.Simple (
 import Database.SQLite.Simple.ToField (ToField)
 
 import PersistenceStore.Analyzer (analyze)
-import PersistenceStore.Class (Persistable, PersistenceType, save)
-import PersistenceStore.MetricValueRow (DbDate (..), MetricValueRow (..))
-import PersistenceStore.Metrics (Metrics (ReportingMonth))
-import Types.ClubPerformanceReport (EnhancedClubPerformanceReport (..), clubNumber)
+import PersistenceStore.ClubMetric (ClubMetric (..), DbDate (..))
+import PersistenceStore.ClubMetrics (ClubMetrics (ReportingMonth))
+import Types.ClubPerformanceReport (
+  ClubPerformanceRecord (..),
+  ClubPerformanceReport (..),
+  clubNumber,
+ )
 
 databaseName :: String
 databaseName = "dcp.sqlite"
 
-data SQLite
-instance PersistenceType SQLite
-
-saveRow :: ToField a => Connection -> Query -> MetricValueRow a -> IO ()
-saveRow conn tableName (MetricValueRow {clubId, metricId, value, date}) =
+saveMetric :: ToField a => Connection -> Query -> ClubMetric a -> IO ()
+saveMetric conn tableName (ClubMetric {clubId, metricId, value, date}) =
   executeNamed
     conn
     query
@@ -55,19 +56,23 @@ saveRow conn tableName (MetricValueRow {clubId, metricId, value, date}) =
       <> ")"
       <> ");"
 
-instance Persistable SQLite EnhancedClubPerformanceReport IO () where
-  save _ EnhancedClubPerformanceReport {cpr, asOf, month} = do
-    conn <- open databaseName
-    execute_ conn "PRAGMA foreign_keys = ON"
-    executeNamed
-      conn
-      "INSERT OR IGNORE INTO clubs(id) VALUES (:clubNumber);"
-      [":clubNumber" := clubNumber cpr]
-    let clubId = clubNumber cpr
-        metricId = fromEnum ReportingMonth
-        value = case month of MkMonth m -> fromInteger m
-        date = DbDate asOf
-        reportingMonthMetric = MetricValueRow {clubId, metricId, value, date}
-        (intRows, textRows) = analyze (clubNumber cpr) asOf cpr
-    traverse_ (saveRow conn "int_metric_values") (reportingMonthMetric : intRows)
-    traverse_ (saveRow conn "text_metric_values") textRows
+saveRecord :: Connection -> Day -> Month -> ClubPerformanceRecord -> IO ()
+saveRecord conn dayOfRecord month record = do
+  executeNamed
+    conn
+    "INSERT OR IGNORE INTO clubs(id) VALUES (:clubNumber);"
+    [":clubNumber" := clubNumber record]
+  let clubId = clubNumber record
+      monthMetricId = fromEnum ReportingMonth
+      monthValue = case month of MkMonth m -> fromInteger m
+      date = DbDate dayOfRecord
+      reportingMonthMetric = ClubMetric {clubId, metricId = monthMetricId, value = monthValue, date}
+      (intRows, textRows) = analyze (clubNumber record) dayOfRecord record
+  traverse_ (saveMetric conn "int_metric_values") (reportingMonthMetric : intRows)
+  traverse_ (saveMetric conn "text_metric_values") textRows
+
+saveReport :: ClubPerformanceReport -> IO ()
+saveReport ClubPerformanceReport {dayOfRecord, month, records} = do
+  conn <- open databaseName
+  execute_ conn "PRAGMA foreign_keys = ON"
+  traverse_ (saveRecord conn dayOfRecord month) records

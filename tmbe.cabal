@@ -62,9 +62,8 @@ library
     exposed-modules:
         Download,
         PersistenceStore.Analyzer,
-        PersistenceStore.Class,
-        PersistenceStore.Metrics,
-        PersistenceStore.MetricValueRow,
+        PersistenceStore.ClubMetrics,
+        PersistenceStore.ClubMetric,
         PersistenceStore.SQLite,
         Types.Area,
         Types.ClubNumber,

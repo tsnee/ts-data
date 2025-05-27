@@ -1,4 +1,4 @@
-module PersistenceStore.MetricValueRow (DbDate (..), MetricValueRow (..)) where
+module PersistenceStore.ClubMetric (DbDate (..), ClubMetric (..)) where
 
 import Prelude
 
@@ -15,9 +15,9 @@ import Types.ClubNumber (ClubNumber)
 newtype DbDate = DbDate Day
   deriving (FromField, Generic, ToField)
 
-data MetricValueRow a = MetricValueRow {clubId :: ClubNumber, metricId :: Int, value :: a, date :: DbDate}
+data ClubMetric a = ClubMetric {clubId :: ClubNumber, metricId :: Int, value :: a, date :: DbDate}
   deriving (Generic)
-instance FromRow (MetricValueRow Integer)
-instance FromRow (MetricValueRow Text)
-instance ToRow (MetricValueRow Integer)
-instance ToRow (MetricValueRow Text)
+instance FromRow (ClubMetric Integer)
+instance FromRow (ClubMetric Text)
+instance ToRow (ClubMetric Integer)
+instance ToRow (ClubMetric Text)

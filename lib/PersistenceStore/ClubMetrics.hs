@@ -1,10 +1,10 @@
-module PersistenceStore.Metrics where
+module PersistenceStore.ClubMetrics (ClubMetrics (..)) where
 
 import Prelude
 
 import TextShow (TextShow, fromString, showb)
 
-data Metrics
+data ClubMetrics
   = ActiveMembers
   | Area
   | ClubName
@@ -26,5 +26,5 @@ data Metrics
   | OfficersTrainedRoundTwo
   | ReportingMonth
   deriving (Bounded, Enum, Eq, Show)
-instance TextShow Metrics where
+instance TextShow ClubMetrics where
   showb = fromString . show
