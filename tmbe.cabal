@@ -63,8 +63,9 @@ library
         Download,
         PersistenceStore.Analyzer,
         PersistenceStore.ClubMetrics,
-        PersistenceStore.ClubMetric,
+        PersistenceStore.Measurement,
         PersistenceStore.SQLite,
+        Serve,
         Types.Area,
         Types.ClubNumber,
         Types.ClubPerformanceReport,
@@ -74,7 +75,9 @@ library
         Types.District,
         Types.Division,
         Types.Format,
-        Types.ProgramYear
+        Types.ProgramYear,
+        Types.Request,
+        Types.Response
 
     -- Modules included in this library but not exported.
     other-modules:  Types.SqlParsing
@@ -84,6 +87,8 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:
+        aeson ^>=2.2.3.0,
+        autodocodec ^>=0.4.2.2,
         base ^>=4.21,
         basic-prelude ^>=0.7.0,
         bytestring ^>=0.12.0.2,
@@ -95,6 +100,7 @@ library
         servant ^>=0.20.2,
         servant-client ^>=0.20.2,
         servant-client-core ^>=0.20.2,
+        servant-server ^>=0.20.2,
         sqlite-simple >=0.4.19.0,
         text ^>=2.1.2,
         text-show ^>=3.11.1,
@@ -152,6 +158,36 @@ executable download-report
         base ^>=4.21,
         text-show ^>=3.11.1,
         time ^>=1.14,
+        tmbe
+
+    -- Directories containing source files.
+    hs-source-dirs:   app
+
+    -- Base language which the package is written in.
+    default-language: GHC2021
+
+executable server
+    -- Import common warning flags.
+    import:           warnings
+
+    -- .hs or .lhs file containing the Main module.
+    main-is:          Server.hs
+
+    -- Modules included in this executable, other than Main.
+    -- other-modules:
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    -- Other library packages from which modules are imported.
+    build-depends:
+        base ^>=4.21,
+        http-types ^>=0.12.4,
+        servant-server ^>=0.20.2,
+        wai ^>=3.2.4,
+        wai-cors ^>=0.2.7,
+        wai-extra ^>=3.1.17,
+        warp ^>=3.4.7,
         tmbe
 
     -- Directories containing source files.

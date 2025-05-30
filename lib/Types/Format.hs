@@ -1,13 +1,14 @@
+{-# LANGUAGE DerivingVia #-}
+
 module Types.Format (Format (..)) where
 
 import Prelude
 
 import Servant.API (ToHttpApiData, toUrlPiece)
-import TextShow (TextShow, fromString, showb, showt)
+import TextShow (FromStringShow (..), TextShow, showt)
 
 data Format = CSV | PDF
   deriving (Show)
-instance TextShow Format where
-  showb = fromString . show
+  deriving (TextShow) via FromStringShow Format
 instance ToHttpApiData Format where
   toUrlPiece = showt

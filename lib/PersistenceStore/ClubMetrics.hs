@@ -1,8 +1,10 @@
+{-# LANGUAGE DerivingVia #-}
+
 module PersistenceStore.ClubMetrics (ClubMetrics (..)) where
 
 import Prelude
 
-import TextShow (TextShow, fromString, showb)
+import TextShow (FromStringShow (..), TextShow)
 
 data ClubMetrics
   = ActiveMembers
@@ -26,5 +28,4 @@ data ClubMetrics
   | OfficersTrainedRoundTwo
   | ReportingMonth
   deriving (Bounded, Enum, Eq, Show)
-instance TextShow ClubMetrics where
-  showb = fromString . show
+  deriving (TextShow) via FromStringShow ClubMetrics

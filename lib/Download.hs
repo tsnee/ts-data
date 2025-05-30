@@ -14,6 +14,7 @@ import Data.Either.Combinators (maybeToRight)
 import Data.List (unsnoc)
 import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
+import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time (
   Day (..),
@@ -91,7 +92,7 @@ downloadClubPerformanceApi
   -> ClientM ClubPerformanceReport
 downloadClubPerformanceApi = client clubPerformanceApi
 
-download :: CPRS.ClubPerformanceReportSpec -> IO (Either T.Text ClubPerformanceReport)
+download :: CPRS.ClubPerformanceReportSpec -> IO (Either Text ClubPerformanceReport)
 download clubPerformanceSpec@CPRS.ClubPerformanceReportSpec {CPRS.format, CPRS.programYear} = do
   let logHeaders req = do
         print $ show req
@@ -125,9 +126,9 @@ infixl 6 |+|
 downloadClubPerformanceStarting :: District -> Month -> Maybe Day -> IO ()
 downloadClubPerformanceStarting district startMonth Nothing = findFirstReportingDate district startMonth $ periodFirstDay startMonth
 downloadClubPerformanceStarting district startMonth (Just dayOfRecord) = do
-  let showMonth :: Month -> T.Text
+  let showMonth :: Month -> Text
       showMonth = showt . formatTime defaultTimeLocale "%B %Y"
-      showDay :: Day -> T.Text
+      showDay :: Day -> Text
       showDay = showt . formatTime defaultTimeLocale "%B %d %Y"
   result <- reportFromDayOfRecord district startMonth dayOfRecord
   case result of
@@ -141,7 +142,7 @@ downloadClubPerformanceStarting district startMonth (Just dayOfRecord) = do
       saveReport report
       downloadClubPerformanceStarting district startMonth $ Just $ addDays 1 dayOfRecord
 
-reportFromDayOfRecord :: District -> Month -> Day -> IO (Either T.Text ClubPerformanceReport)
+reportFromDayOfRecord :: District -> Month -> Day -> IO (Either Text ClubPerformanceReport)
 reportFromDayOfRecord district reportingMonth dayOfRecord = do
   let formatMonth = T.pack . formatTime defaultTimeLocale "%B %Y"
       formatDay = T.pack . formatTime defaultTimeLocale "%B %e, %Y"

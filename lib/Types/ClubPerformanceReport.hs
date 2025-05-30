@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..)) where
@@ -14,8 +13,8 @@ import GHC.Generics (Generic)
 import TextShow (showt)
 
 import PersistenceStore.Analyzer (Analyzer (..))
-import PersistenceStore.ClubMetric (ClubMetric (..), DbDate (..))
 import PersistenceStore.ClubMetrics qualified as M
+import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import Types.Area (Area (..))
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubStatus (ClubStatus (..))
@@ -86,13 +85,13 @@ instance FromNamedRecord ClubPerformanceRecord where
 instance Analyzer ClubPerformanceRecord where
   analyze clubId date rec =
     (
-      [ ClubMetric
+      [ Measurement
           { clubId
           , metricId = fromEnum M.District
           , value = case district rec of District d -> d
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.Area
           , value = case area rec of
@@ -100,81 +99,81 @@ instance Analyzer ClubPerformanceRecord where
               Area a -> a
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.ClubStatus
           , value = fromEnum (clubStatus rec)
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.MembershipBase
           , value = membershipBase rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.ActiveMembers
           , value = activeMembers rec
           , date = DbDate date
           }
-      , ClubMetric {clubId, metricId = fromEnum M.GoalsMet, value = goalsMet rec, date = DbDate date}
-      , ClubMetric {clubId, metricId = fromEnum M.LevelOnes, value = level1s rec, date = DbDate date}
-      , ClubMetric
+      , Measurement {clubId, metricId = fromEnum M.GoalsMet, value = goalsMet rec, date = DbDate date}
+      , Measurement {clubId, metricId = fromEnum M.LevelOnes, value = level1s rec, date = DbDate date}
+      , Measurement
           { clubId
           , metricId = fromEnum M.LevelTwos
-          , value = (level2s rec + moreLevel2s rec)
+          , value = level2s rec + moreLevel2s rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.LevelThrees
           , value = level3s rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.HigherLevels
-          , value = (level4s5sOrDtms rec + moreLevel4s5sOrDtms rec)
+          , value = level4s5sOrDtms rec + moreLevel4s5sOrDtms rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.NewMembers
-          , value = (newMembers rec + moreNewMembers rec)
+          , value = newMembers rec + moreNewMembers rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.OfficersTrainedRoundOne
           , value = winterOfficersTrained rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.OfficersTrainedRoundTwo
           , value = summerOfficersTrained rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.DuesOnTimeOctober
           , value = duesPaidOctober rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.DuesOnTimeApril
           , value = duesPaidApril rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.OfficersListOnTime
           , value = officerListOnTime rec
           , date = DbDate date
           }
-      , ClubMetric
+      , Measurement
           { clubId
           , metricId = fromEnum M.DistinguishedStatus
           , value = fromEnum (distinguishedStatus rec)
@@ -182,12 +181,12 @@ instance Analyzer ClubPerformanceRecord where
           }
       ]
     ,
-      [ ClubMetric
+      [ Measurement
           { clubId
           , metricId = fromEnum M.Division
           , value = showt (division rec)
           , date = DbDate date
           }
-      , ClubMetric {clubId, metricId = fromEnum M.ClubName, value = clubName rec, date = DbDate date}
+      , Measurement {clubId, metricId = fromEnum M.ClubName, value = clubName rec, date = DbDate date}
       ]
     )

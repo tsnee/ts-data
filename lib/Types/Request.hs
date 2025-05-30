@@ -1,0 +1,26 @@
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+module Types.Request (Request (..)) where
+
+import Autodocodec (Autodocodec (..), HasCodec, codec, object, optionalField, requiredField, (.=))
+import Data.Aeson (FromJSON, ToJSON)
+import Data.Text (Text)
+import Data.Time (Day)
+import GHC.Generics (Generic)
+
+data Request = Request
+  { metrics :: [Text]
+  , startDate :: Maybe Day
+  , endDate :: Maybe Day
+  }
+  deriving stock (Eq, Generic, Show)
+  deriving (FromJSON, ToJSON) via (Autodocodec Request)
+instance HasCodec Request where
+  codec =
+    object "Request" $
+      Request
+        <$> requiredField "metrics" "List of metrics" .= metrics
+        <*> optionalField "start_date" "Beginning of date range" .= startDate
+        <*> optionalField "end_date" "End of date range" .= endDate

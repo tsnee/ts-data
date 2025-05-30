@@ -1,5 +1,4 @@
 {-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE OverloadedRecordDot #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module PersistenceStore.SQLite (databaseName, saveReport) where
@@ -20,8 +19,8 @@ import Database.SQLite.Simple (
 import Database.SQLite.Simple.ToField (ToField)
 
 import PersistenceStore.Analyzer (analyze)
-import PersistenceStore.ClubMetric (ClubMetric (..), DbDate (..))
 import PersistenceStore.ClubMetrics (ClubMetrics (ReportingMonth))
+import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import Types.ClubPerformanceReport (
   ClubPerformanceRecord (..),
   ClubPerformanceReport (..),
@@ -31,8 +30,8 @@ import Types.ClubPerformanceReport (
 databaseName :: String
 databaseName = "dcp.sqlite"
 
-saveMetric :: ToField a => Connection -> Query -> ClubMetric a -> IO ()
-saveMetric conn tableName (ClubMetric {clubId, metricId, value, date}) =
+saveMeasurement :: ToField a => Connection -> Query -> Measurement a -> IO ()
+saveMeasurement conn tableName Measurement {clubId, metricId, value, date} =
   executeNamed
     conn
     query
@@ -66,10 +65,10 @@ saveRecord conn dayOfRecord month record = do
       monthMetricId = fromEnum ReportingMonth
       monthValue = case month of MkMonth m -> fromInteger m
       date = DbDate dayOfRecord
-      reportingMonthMetric = ClubMetric {clubId, metricId = monthMetricId, value = monthValue, date}
+      reportingMonthMeasurement = Measurement {clubId, metricId = monthMetricId, value = monthValue, date}
       (intRows, textRows) = analyze (clubNumber record) dayOfRecord record
-  traverse_ (saveMetric conn "int_metric_values") (reportingMonthMetric : intRows)
-  traverse_ (saveMetric conn "text_metric_values") textRows
+  traverse_ (saveMeasurement conn "int_metric_values") (reportingMonthMeasurement : intRows)
+  traverse_ (saveMeasurement conn "text_metric_values") textRows
 
 saveReport :: ClubPerformanceReport -> IO ()
 saveReport ClubPerformanceReport {dayOfRecord, month, records} = do
