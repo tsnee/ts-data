@@ -2,14 +2,13 @@
 
 module Types.Area (Area (..)) where
 
-import Prelude
-
 import Data.Csv qualified as CSV
 import Database.SQLite.Simple (SQLData (..))
 import Database.SQLite.Simple.FromField (FromField (..), fromField)
 import Database.SQLite.Simple.Internal (Field (..))
 import Database.SQLite.Simple.Ok (Ok (..))
 import Database.SQLite.Simple.ToField (ToField (..))
+import Prelude
 
 data Area = Area Int | AreaNotAssigned
   deriving (Read, Show)

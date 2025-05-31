@@ -3,14 +3,13 @@
 
 module Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..)) where
 
-import Prelude
-
 import Data.Csv (FromNamedRecord, parseNamedRecord, (.:))
 import Data.Text (Text)
 import Data.Time (Day)
 import Data.Time.Calendar.Month (Month (..))
 import GHC.Generics (Generic)
 import TextShow (showt)
+import Prelude
 
 import PersistenceStore.Analyzer (Analyzer (..))
 import PersistenceStore.ClubMetrics qualified as M
@@ -116,8 +115,8 @@ instance Analyzer ClubPerformanceRecord Int where
         , value = activeMembers rec
         , date = DbDate date
         }
-    , Measurement {clubId, metricId = fromEnum M.GoalsMet, value = goalsMet rec, date = DbDate date}
-    , Measurement {clubId, metricId = fromEnum M.LevelOnes, value = level1s rec, date = DbDate date}
+    , Measurement{clubId, metricId = fromEnum M.GoalsMet, value = goalsMet rec, date = DbDate date}
+    , Measurement{clubId, metricId = fromEnum M.LevelOnes, value = level1s rec, date = DbDate date}
     , Measurement
         { clubId
         , metricId = fromEnum M.LevelTwos
@@ -187,5 +186,5 @@ instance Analyzer ClubPerformanceRecord Text where
         , value = showt (division rec)
         , date = DbDate date
         }
-    , Measurement {clubId, metricId = fromEnum M.ClubName, value = clubName rec, date = DbDate date}
+    , Measurement{clubId, metricId = fromEnum M.ClubName, value = clubName rec, date = DbDate date}
     ]

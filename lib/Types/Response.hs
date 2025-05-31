@@ -5,17 +5,17 @@
 
 module Types.Response (Codomain (..), Response (..), Series (..)) where
 
-import Autodocodec (
-  Autodocodec (..),
-  HasCodec,
-  JSONCodec,
-  codec,
-  dimapCodec,
-  disjointEitherCodec,
-  object,
-  requiredField,
-  (.=),
- )
+import Autodocodec
+  ( Autodocodec (..)
+  , HasCodec
+  , JSONCodec
+  , codec
+  , dimapCodec
+  , disjointEitherCodec
+  , object
+  , requiredField
+  , (.=)
+  )
 import Autodocodec.OpenAPI (declareNamedSchemaViaCodec)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.OpenApi (ToSchema (..))

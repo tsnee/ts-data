@@ -2,8 +2,6 @@
 
 module Types.Division (Division (..)) where
 
-import Prelude
-
 import Data.Csv qualified as CSV
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -12,11 +10,12 @@ import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
 import Safe (headMay)
 import TextShow (Builder, TextShow, fromString, showb)
+import Prelude
 
 import Types.SqlParsing (parseTextField)
 
 data Division = DivisionNotAssigned | Division Char
-  deriving (Eq)
+  deriving Eq
 instance CSV.FromField Division where
   parseField s
     | s == "0D" = pure DivisionNotAssigned

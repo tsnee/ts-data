@@ -2,8 +2,6 @@
 
 module Types.SqlParsing (parseEnumField, parseTextField) where
 
-import Prelude
-
 import Data.ByteString.Char8 qualified as BS
 import Data.List (find)
 import Data.Text (Text)
@@ -15,12 +13,13 @@ import Database.SQLite.Simple.Internal (Field (..), gettypename)
 import Database.SQLite.Simple.Ok (Ok (..))
 import TextShow (TextShow, showt)
 import TextShow.Data.Typeable qualified ()
+import Prelude
 
 safeToEnum :: (Bounded a, Enum a, Eq a, Eq i, Integral i) => i -> Maybe a
 safeToEnum x = find ((==) (fromIntegral x) . fromEnum) [minBound .. maxBound]
 
 incompatibleTypeError :: forall a. (TextShow a, Typeable a) => Field -> Ok a
-incompatibleTypeError f@Field {result} =
+incompatibleTypeError f@Field{result} =
   returnError Incompatible f $
     T.unpack $
       "Expected TEXT column for "

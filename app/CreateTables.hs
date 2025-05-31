@@ -2,14 +2,18 @@
 
 module Main where
 
-import Prelude
-
 import Data.Foldable (traverse_)
 import Database.SQLite.Simple (Connection, NamedParam (..), Query, executeNamed, execute_)
 import TextShow (showt)
+import Prelude
 
 import PersistenceStore.ClubMetrics (ClubMetrics)
-import PersistenceStore.SQLite (TableName(..), intMeasurementTable, openDatabase, textMeasurementTable)
+import PersistenceStore.SQLite
+  ( TableName (..)
+  , intMeasurementTable
+  , openDatabase
+  , textMeasurementTable
+  )
 
 newtype ColumnType = ColumnType Query
 

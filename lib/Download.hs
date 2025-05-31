@@ -6,8 +6,6 @@
 
 module Download (CsvOctetStream (..), download, downloadClubPerformanceStarting) where
 
-import Prelude
-
 import Data.ByteString.Lazy.Char8 qualified as BL8
 import Data.Csv (decodeByName)
 import Data.Either.Combinators (maybeToRight)
@@ -16,16 +14,16 @@ import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
 import Data.Text qualified as T
-import Data.Time (
-  Day (..),
-  MonthOfYear,
-  addDays,
-  dayPeriod,
-  diffDays,
-  periodFirstDay,
-  periodLastDay,
-  pattern July,
- )
+import Data.Time
+  ( Day (..)
+  , MonthOfYear
+  , addDays
+  , dayPeriod
+  , diffDays
+  , periodFirstDay
+  , periodLastDay
+  , pattern July
+  )
 import Data.Time.Calendar.Month (Month (..), addMonths, pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
 import Data.Vector (toList)
@@ -34,6 +32,7 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
 import Servant.Client (BaseUrl (..), ClientM, Scheme (..), client, mkClientEnv, runClientM)
 import TextShow (printT, showt)
+import Prelude
 
 import PersistenceStore.SQLite (saveReport)
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
@@ -63,7 +62,7 @@ parseFooter footer = do
   pure (monthOfYear, dayOfRecord)
 
 newtype CsvOctetStream = CsvOctetStream OctetStream
-  deriving (Accept) via OctetStream
+  deriving Accept via OctetStream
 instance MimeUnrender CsvOctetStream ClubPerformanceReport where
   mimeUnrender _ bytes = do
     let rows = BL8.lines bytes
@@ -73,7 +72,7 @@ instance MimeUnrender CsvOctetStream ClubPerformanceReport where
     let YearMonth yearOfRecord monthOfRecord = dayPeriod dayOfRecord
         yearReported = if monthReported <= monthOfRecord then yearOfRecord else yearOfRecord - 1
         records = toList parsedCsv
-    pure ClubPerformanceReport {dayOfRecord, month = YearMonth yearReported monthReported, records}
+    pure ClubPerformanceReport{dayOfRecord, month = YearMonth yearReported monthReported, records}
 
 type ClubPerformanceAPI =
   Capture "programYear" ProgramYear
@@ -93,13 +92,13 @@ downloadClubPerformanceApi
 downloadClubPerformanceApi = client clubPerformanceApi
 
 download :: CPRS.ClubPerformanceReportSpec -> IO (Either Text ClubPerformanceReport)
-download clubPerformanceSpec@CPRS.ClubPerformanceReportSpec {CPRS.format, CPRS.programYear} = do
+download clubPerformanceSpec@CPRS.ClubPerformanceReportSpec{CPRS.format, CPRS.programYear} = do
   let logHeaders req = do
         print $ show req
         pure req
       managerSettings =
         if debug
-          then tlsManagerSettings {managerModifyRequest = logHeaders}
+          then tlsManagerSettings{managerModifyRequest = logHeaders}
           else tlsManagerSettings
       api = downloadClubPerformanceApi programYear (Just format) (Just clubPerformanceSpec)
   manager <- newManager managerSettings
@@ -114,7 +113,7 @@ findFirstReportingDate district startMonth dayOfRecord = do
   result <- reportFromDayOfRecord district startMonth dayOfRecord
   case result of
     Left err -> print err
-    Right ClubPerformanceReport {records = []} -> findFirstReportingDate district startMonth $ addDays 1 dayOfRecord
+    Right ClubPerformanceReport{records = []} -> findFirstReportingDate district startMonth $ addDays 1 dayOfRecord
     Right report -> do
       saveReport report
       downloadClubPerformanceStarting district startMonth $ Just $ addDays 1 dayOfRecord
@@ -133,7 +132,7 @@ downloadClubPerformanceStarting district startMonth (Just dayOfRecord) = do
   result <- reportFromDayOfRecord district startMonth dayOfRecord
   case result of
     Left err -> print err
-    Right ClubPerformanceReport {records = []}
+    Right ClubPerformanceReport{records = []}
       | dayPeriod dayOfRecord == startMonth |+| 1 ->
           downloadClubPerformanceStarting district (startMonth |+| 1) (Just dayOfRecord)
       | otherwise ->

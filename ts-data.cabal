@@ -11,7 +11,7 @@ cabal-version:      3.0
 --   http://haskell.org/cabal/users-guide/
 --
 -- The name of the package.
-name:               tmbe
+name:               ts-data
 
 -- The package version.
 -- See the Haskell package versioning policy (PVP) for standards
@@ -134,7 +134,7 @@ executable create-tables
         sqlite-simple >=0.4.19.0,
         text ^>=2.1.2,
         text-show ^>=3.11.1,
-        tmbe
+        ts-data
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -160,7 +160,7 @@ executable download-reports
         base ^>=4.21,
         text-show ^>=3.11.1,
         time ^>=1.14,
-        tmbe
+        ts-data
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -188,7 +188,7 @@ executable gendocs
         bytestring ^>=0.12.0.2,
         openapi3 ^>=3.2.4,
         servant-openapi3 ^>=2.0.1.6,
-        tmbe
+        ts-data
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -218,7 +218,7 @@ executable server
         wai-cors ^>=0.2.7,
         wai-extra ^>=3.1.17,
         warp ^>=3.4.7,
-        tmbe
+        ts-data
 
     -- Directories containing source files.
     hs-source-dirs:   app
@@ -226,7 +226,7 @@ executable server
     -- Base language which the package is written in.
     default-language: GHC2021
 
-test-suite tmbe-test
+test-suite ts-data-test
     -- Import common warning flags.
     import:           warnings
 
@@ -252,4 +252,4 @@ test-suite tmbe-test
     build-depends:
         base ^>=4.21,
         time ^>=1.14,
-        tmbe
+        ts-data

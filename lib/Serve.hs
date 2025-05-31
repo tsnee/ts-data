@@ -4,12 +4,11 @@
 
 module Serve (DataApi, app, dataApi) where
 
-import Prelude
-
 import Data.Text (Text)
 import Servant (Application, Handler, Proxy (..), Server, serve)
 import Servant.API (JSON, Post, ReqBody, (:>))
 import TextShow (showt)
+import Prelude
 
 import Types.Request (Request (..))
 import Types.Response (Codomain (..), Response (..), Series (..))
@@ -29,7 +28,7 @@ processRequest :: Request -> Handler (Response Text)
 processRequest _ = pure response
 
 dataArray :: [Series]
-dataArray = [Series {label = "Goal " <> showt (i :: Int), codomain = IntCodomain [0 .. 10]} | i <- [1 .. 10]]
+dataArray = [Series{label = "Goal " <> showt (i :: Int), codomain = IntCodomain [0 .. 10]} | i <- [1 .. 10]]
 
 response :: Response Text
 response =

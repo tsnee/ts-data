@@ -3,11 +3,10 @@
 
 module PersistenceStore.ClubMetrics (ClubMetrics (..)) where
 
-import Prelude
-
 import Autodocodec (HasCodec, codec, shownBoundedEnumCodec)
 import GHC.Generics (Generic)
 import TextShow (FromStringShow (..), TextShow)
+import Prelude
 
 data ClubMetrics
   = ActiveMembers
@@ -31,6 +30,6 @@ data ClubMetrics
   | OfficersTrainedRoundTwo
   | ReportingMonth
   deriving stock (Bounded, Enum, Eq, Generic, Read, Show)
-  deriving (TextShow) via FromStringShow ClubMetrics
+  deriving TextShow via FromStringShow ClubMetrics
 instance HasCodec ClubMetrics where
   codec = shownBoundedEnumCodec

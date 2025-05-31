@@ -3,9 +3,11 @@ indentation: 2
 column-limit: 100
 function-arrows: leading
 comma-style: leading
-record-brace-space: true
-single-constraint-parens: auto
-single-deriving-parens: always
+import-export-style: leading
+import-grouping: by-scope
+record-brace-space: false
+single-constraint-parens: never
+single-deriving-parens: never
 sort-constraints: true
 sort-derived-classes: true
 sort-deriving-clauses: true

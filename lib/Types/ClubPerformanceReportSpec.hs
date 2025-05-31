@@ -24,7 +24,7 @@ data ClubPerformanceReportSpec = ClubPerformanceReportSpec
   , programYear :: !ProgramYear
   }
 instance ToHttpApiData ClubPerformanceReportSpec where
-  toUrlPiece ClubPerformanceReportSpec {district, month, reportedOn, programYear} =
+  toUrlPiece ClubPerformanceReportSpec{district, month, reportedOn, programYear} =
     T.intercalate
       "~"
       [ "clubperformance"
