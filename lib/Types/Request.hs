@@ -5,13 +5,16 @@
 module Types.Request (Request (..)) where
 
 import Autodocodec (Autodocodec (..), HasCodec, codec, object, optionalField, requiredField, (.=))
+import Autodocodec.OpenAPI (declareNamedSchemaViaCodec)
 import Data.Aeson (FromJSON, ToJSON)
-import Data.Text (Text)
+import Data.OpenApi (ToSchema (..))
 import Data.Time (Day)
 import GHC.Generics (Generic)
 
+import PersistenceStore.ClubMetrics (ClubMetrics)
+
 data Request = Request
-  { metrics :: [Text]
+  { metrics :: [ClubMetrics]
   , startDate :: Maybe Day
   , endDate :: Maybe Day
   }
@@ -24,3 +27,5 @@ instance HasCodec Request where
         <$> requiredField "metrics" "List of metrics" .= metrics
         <*> optionalField "start_date" "Beginning of date range" .= startDate
         <*> optionalField "end_date" "End of date range" .= endDate
+instance ToSchema Request where
+  declareNamedSchema = declareNamedSchemaViaCodec

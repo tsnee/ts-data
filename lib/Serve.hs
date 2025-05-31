@@ -2,23 +2,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Serve (app) where
+module Serve (DataApi, app, dataApi) where
 
 import Prelude
 
 import Data.Text (Text)
 import Servant (Application, Handler, Proxy (..), Server, serve)
-import Servant.API (Get, JSON, PlainText, Post, ReqBody, (:<|>) (..), (:>))
+import Servant.API (JSON, Post, ReqBody, (:>))
 import TextShow (showt)
 
-import Types.Request
-import Types.Response
+import Types.Request (Request (..))
+import Types.Response (Codomain (..), Response (..), Series (..))
 
-type DataApi =
-  "measurements" :> "club" :> "integer" :> ReqBody '[JSON] Request :> Post '[JSON] (Response Text Int)
-    :<|> "measurements" :> "club" :> "integer" :> Get '[PlainText] Text
-    :<|> "measurements" :> "club" :> "text" :> ReqBody '[JSON] Request :> Post '[JSON] (Response Text Int)
-    :<|> "measurements" :> "club" :> "text" :> Get '[PlainText] Text
+type DataApi = "measurements" :> "club" :> ReqBody '[JSON] Request :> Post '[JSON] (Response Text)
 
 dataApi :: Proxy DataApi
 dataApi = Proxy
@@ -27,15 +23,15 @@ app :: Application
 app = serve dataApi serveData
 
 serveData :: Server DataApi
-serveData = processRequest :<|> displayMetrics :<|> processRequest :<|> displayMetrics
+serveData = processRequest
 
-processRequest :: Request -> Handler (Response Text Int)
+processRequest :: Request -> Handler (Response Text)
 processRequest _ = pure response
 
-dataArray :: [Series Int]
-dataArray = [Series {label = "Goal " <> showt (i :: Int), codomain = [0 .. 10]} | i <- [1 .. 10]]
+dataArray :: [Series]
+dataArray = [Series {label = "Goal " <> showt (i :: Int), codomain = IntCodomain [0 .. 10]} | i <- [1 .. 10]]
 
-response :: Response Text Int
+response :: Response Text
 response =
   Response
     { domain =
@@ -53,6 +49,3 @@ response =
         ]
     , series = dataArray
     }
-
-displayMetrics :: Handler Text
-displayMetrics = pure "Hi There!"

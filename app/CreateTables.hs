@@ -5,21 +5,21 @@ module Main where
 import Prelude
 
 import Data.Foldable (traverse_)
-import Database.SQLite.Simple (Connection, NamedParam (..), executeNamed, execute_, open)
+import Database.SQLite.Simple (Connection, NamedParam (..), Query, executeNamed, execute_)
 import TextShow (showt)
 
 import PersistenceStore.ClubMetrics (ClubMetrics)
-import PersistenceStore.SQLite (databaseName)
+import PersistenceStore.SQLite (TableName(..), intMeasurementTable, openDatabase, textMeasurementTable)
+
+newtype ColumnType = ColumnType Query
 
 main :: IO ()
 main = do
-  conn <- open databaseName
-  execute_ conn "PRAGMA foreign_keys = ON"
+  conn <- openDatabase
   createClubTable conn
   createMetricNameTable conn
-  createIntMetricValueTable conn
-  createTextMetricValueTable conn
-  createEnumTable conn
+  createMeasurementTable conn intMeasurementTable (ColumnType "INTEGER")
+  createMeasurementTable conn textMeasurementTable (ColumnType "TEXT")
 
 createClubTable :: Connection -> IO ()
 createClubTable conn = execute_ conn "CREATE TABLE IF NOT EXISTS clubs (id INTEGER NOT NULL PRIMARY KEY);"
@@ -40,37 +40,16 @@ createMetricNameTable conn = do
           [":id" := fromEnum m, ":name" := showt m]
   traverse_ insert $ enumFrom minBound
 
-createIntMetricValueTable :: Connection -> IO ()
-createIntMetricValueTable conn =
-  execute_
-    conn
-    "CREATE TABLE IF NOT EXISTS int_metric_values \
-    \( club_id   INTEGER NOT NULL REFERENCES clubs(id) \
-    \, metric_id INTEGER NOT NULL REFERENCES metric_names(id) \
-    \, value     INTEGER NOT NULL \
-    \, date      DATE    NOT NULL \
-    \, PRIMARY KEY (club_id, metric_id, date) \
-    \);"
-
-createTextMetricValueTable :: Connection -> IO ()
-createTextMetricValueTable conn =
-  execute_
-    conn
-    "CREATE TABLE IF NOT EXISTS text_metric_values \
-    \( club_id   INTEGER NOT NULL REFERENCES clubs(id) \
-    \, metric_id INTEGER NOT NULL REFERENCES metric_names(id) \
-    \, value     TEXT    NOT NULL \
-    \, date      DATE    NOT NULL \
-    \, PRIMARY KEY (club_id, metric_id, date) \
-    \);"
-
-createEnumTable :: Connection -> IO ()
-createEnumTable conn =
-  execute_
-    conn
-    "CREATE TABLE IF NOT EXISTS enums \
-    \( name         TEXT    NOT NULL \
-    \, metric_id    INTEGER NOT NULL REFERENCES metric_names(id) \
-    \, metric_value INTEGER NOT NULL \
-    \, PRIMARY KEY (metric_id, metric_value) \
-    \);"
+createMeasurementTable :: Connection -> TableName -> ColumnType -> IO ()
+createMeasurementTable conn (TableName tableName) (ColumnType valueType) =
+  execute_ conn $
+    "CREATE TABLE IF NOT EXISTS "
+      <> tableName
+      <> "( club_id   INTEGER NOT NULL REFERENCES clubs(id) \
+         \, date      DATE    NOT NULL \
+         \, metric_id INTEGER NOT NULL REFERENCES metric_names(id) \
+         \, value    "
+      <> valueType
+      <> " NOT NULL \
+         \, PRIMARY KEY (club_id, metric_id, date) \
+         \);"

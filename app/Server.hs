@@ -17,8 +17,6 @@ corsResourcePolicy =
     , corsRequestHeaders = [hContentType]
     }
 
--- [ ("Access-Control-Allow-Origin", "http://localhost:3000")
-
 appWithCorsHeaders :: Application
 appWithCorsHeaders = cors (const (Just corsResourcePolicy)) app
 

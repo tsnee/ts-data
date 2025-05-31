@@ -15,7 +15,7 @@ import Types.ClubNumber (ClubNumber)
 newtype DbDate = DbDate Day
   deriving (FromField, Generic, ToField)
 
-data Measurement a = Measurement {clubId :: ClubNumber, metricId :: Int, value :: a, date :: DbDate}
+data Measurement a = Measurement {clubId :: !ClubNumber, metricId :: !Int, value :: !a, date :: !DbDate}
   deriving (Generic)
 instance FromRow (Measurement Integer)
 instance FromRow (Measurement Text)

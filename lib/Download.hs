@@ -45,7 +45,7 @@ import Types.ProgramYear (ProgramYear (..))
 debug :: Bool
 debug = False
 
--- Month of Apr, As of 05/01/2025
+-- Example footer: "Month of Apr, As of 05/01/2025"
 parseFooter :: String -> Either String (MonthOfYear, Day)
 parseFooter footer = do
   let (monthPart, dayPart) = break (== ',') footer
