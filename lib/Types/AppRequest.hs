@@ -2,7 +2,7 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.Request (Request (..)) where
+module Types.AppRequest (AppRequest (..)) where
 
 import Autodocodec (Autodocodec (..), HasCodec, codec, object, optionalField, requiredField, (.=))
 import Autodocodec.OpenAPI (declareNamedSchemaViaCodec)
@@ -12,20 +12,23 @@ import Data.Time (Day)
 import GHC.Generics (Generic)
 
 import PersistenceStore.ClubMetrics (ClubMetrics)
+import Types.ClubNumber (ClubNumber)
 
-data Request = Request
-  { metrics :: [ClubMetrics]
-  , startDate :: Maybe Day
-  , endDate :: Maybe Day
+data AppRequest = AppRequest
+  { clubNumber :: !ClubNumber
+  , metrics :: ![ClubMetrics]
+  , startDate :: !(Maybe Day)
+  , endDate :: !(Maybe Day)
   }
   deriving stock (Eq, Generic, Show)
-  deriving (FromJSON, ToJSON) via (Autodocodec Request)
-instance HasCodec Request where
+  deriving (FromJSON, ToJSON) via Autodocodec AppRequest
+instance HasCodec AppRequest where
   codec =
-    object "Request" $
-      Request
-        <$> requiredField "metrics" "List of metrics" .= metrics
+    object "AppRequest" $
+      AppRequest
+        <$> requiredField "club_number" "Club number" .= clubNumber
+        <*> requiredField "metrics" "Array of club metrics" .= metrics
         <*> optionalField "start_date" "Beginning of date range" .= startDate
         <*> optionalField "end_date" "End of date range" .= endDate
-instance ToSchema Request where
+instance ToSchema AppRequest where
   declareNamedSchema = declareNamedSchemaViaCodec

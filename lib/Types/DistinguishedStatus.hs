@@ -12,7 +12,7 @@ import Database.SQLite.Simple.ToField (ToField (..))
 import TextShow (FromStringShow (..), TextShow)
 import Prelude
 
-import Types.SqlParsing (parseEnumField)
+import PersistenceStore.FieldParsers (parseEnumField)
 
 data DistinguishedStatus = Smedley | Presidents | Select | Distinguished | NotYet
   deriving (Bounded, Enum, Eq, Read, Show)

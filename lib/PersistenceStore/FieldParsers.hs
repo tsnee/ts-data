@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.SqlParsing (parseEnumField, parseTextField) where
+module PersistenceStore.FieldParsers (parseEnumField, parseTextField) where
 
 import Data.ByteString.Char8 qualified as BS
 import Data.List (find)
@@ -18,7 +18,7 @@ import Prelude
 safeToEnum :: (Bounded a, Enum a, Eq a, Eq i, Integral i) => i -> Maybe a
 safeToEnum x = find ((==) (fromIntegral x) . fromEnum) [minBound .. maxBound]
 
-incompatibleTypeError :: forall a. (TextShow a, Typeable a) => Field -> Ok a
+incompatibleTypeError :: forall a. (TextShow a, Typeable a) => FieldParser a
 incompatibleTypeError f@Field{result} =
   returnError Incompatible f $
     T.unpack $
@@ -46,7 +46,7 @@ parseEnumField f@(Field (SQLInteger x) _) = case safeToEnum x of
               <> upperBound
 parseEnumField f = incompatibleTypeError f
 
-parseTextField :: forall a. TextShow a => Typeable a => (Text -> Maybe a) -> Field -> Ok a
+parseTextField :: forall a. TextShow a => Typeable a => (Text -> Maybe a) -> FieldParser a
 parseTextField parse f@(Field (SQLText t) _) =
   case parse t of
     Just x -> Ok x

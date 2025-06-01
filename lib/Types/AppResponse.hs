@@ -3,7 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.Response (Codomain (..), Response (..), Series (..)) where
+module Types.AppResponse (AppResponse (..), Codomain (..), Series (..)) where
 
 import Autodocodec
   ( Autodocodec (..)
@@ -22,23 +22,20 @@ import Data.OpenApi (ToSchema (..))
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-data Response a = Response
-  { domain :: [a]
-  , series :: [Series]
-  }
+newtype AppResponse = AppResponse {series :: [Series]}
   deriving stock (Eq, Generic, Show)
-  deriving (FromJSON, ToJSON) via (Autodocodec (Response a))
-instance HasCodec a => HasCodec (Response a) where
+  deriving (FromJSON, ToJSON) via Autodocodec AppResponse
+instance HasCodec AppResponse where
   codec =
-    object "Response" $
-      Response
-        <$> requiredField "domain" "Data, typically plotted on x axis" .= domain
-        <*> requiredField "series" "Codomains with labels" .= series
-instance (HasCodec a, ToSchema a) => ToSchema (Response a) where
+    object "AppResponse" $
+      AppResponse
+        <$> requiredField "series" "Array of time series" .= series
+instance ToSchema AppResponse where
   declareNamedSchema = declareNamedSchemaViaCodec
 
 data Series = Series
   { label :: !Text
+  , domain :: ![Text]
   , codomain :: !Codomain
   }
   deriving stock (Eq, Generic, Show)
@@ -48,7 +45,8 @@ instance HasCodec Series where
     object "Series" $
       Series
         <$> requiredField "label" "Label for this codomain" .= label
-        <*> requiredField "codomain" "Data, typically plotted on y axis" .= codomain
+        <*> requiredField "domain" "Data typically plotted on x axis" .= domain
+        <*> requiredField "codomain" "Data typically plotted on y axis" .= codomain
 instance ToSchema Series where
   declareNamedSchema = declareNamedSchemaViaCodec
 

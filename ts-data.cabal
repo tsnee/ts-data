@@ -61,11 +61,16 @@ library
     -- Modules exported by the library.
     exposed-modules:
         Download,
+        Logging,
+        MonadStack,
         PersistenceStore.Analyzer,
         PersistenceStore.ClubMetrics,
+        PersistenceStore.FieldParsers,
         PersistenceStore.Measurement,
         PersistenceStore.SQLite,
         Serve,
+        Types.AppRequest,
+        Types.AppResponse,
         Types.Area,
         Types.ClubNumber,
         Types.ClubPerformanceReport,
@@ -75,12 +80,10 @@ library
         Types.District,
         Types.Division,
         Types.Format,
-        Types.ProgramYear,
-        Types.Request,
-        Types.Response
+        Types.ProgramYear
 
     -- Modules included in this library but not exported.
-    other-modules:  Types.SqlParsing
+    -- other-modules:  
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -97,17 +100,23 @@ library
         either ^>=5.0.2,
         http-client ^>=0.7.19,
         http-client-tls ^>=0.3.6.4,
+        katip ^>=0.8.8.2,
+        mtl ^>=2.3.1,
         openapi3 ^>=3.2.4,
         safe ^>=0.3.21,
         servant ^>=0.20.2,
         servant-client ^>=0.20.2,
         servant-client-core ^>=0.20.2,
         servant-server ^>=0.20.2,
-        sqlite-simple >=0.4.19.0,
+        sqlite-simple ^>=0.4.19.0,
         text ^>=2.1.2,
         text-show ^>=3.11.1,
+        text-show-instances ^>=3.9.10,
         time ^>=1.14,
-        vector ^>=0.13.2.0
+        unliftio ^>=0.2.25.1,
+        utf8-string ^>=1.0.2,
+        vector ^>=0.13.2.0,
+        wai ^>=3.2.4
 
     -- Directories containing source files.
     hs-source-dirs:   lib
@@ -131,6 +140,8 @@ executable create-tables
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.21,
+        katip ^>=0.8.8.2,
+        mtl ^>=2.3.1,
         sqlite-simple >=0.4.19.0,
         text ^>=2.1.2,
         text-show ^>=3.11.1,
@@ -158,6 +169,7 @@ executable download-reports
     -- Other library packages from which modules are imported.
     build-depends:
         base ^>=4.21,
+        katip ^>=0.8.8.2,
         text-show ^>=3.11.1,
         time ^>=1.14,
         ts-data
@@ -186,6 +198,7 @@ executable gendocs
         base ^>=4.21,
         autodocodec-openapi3 ^>=0.2.1.4,
         bytestring ^>=0.12.0.2,
+        katip ^>=0.8.8.2,
         openapi3 ^>=3.2.4,
         servant-openapi3 ^>=2.0.1.6,
         ts-data
@@ -213,6 +226,8 @@ executable server
     build-depends:
         base ^>=4.21,
         http-types ^>=0.12.4,
+        katip ^>=0.8.8.2,
+        mtl ^>=2.3.1,
         servant-server ^>=0.20.2,
         wai ^>=3.2.4,
         wai-cors ^>=0.2.7,
@@ -251,5 +266,8 @@ test-suite ts-data-test
     -- Test dependencies.
     build-depends:
         base ^>=4.21,
+        tasty ^>=1.5.3,
+        tasty-hunit ^>=0.10.2,
+        text-show ^>=3.11.1,
         time ^>=1.14,
         ts-data

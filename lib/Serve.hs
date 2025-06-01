@@ -1,50 +1,68 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Serve (DataApi, app, dataApi) where
+module Serve (AppM, DataApi, processRequest) where
 
+import Data.List.NonEmpty (NonEmpty (..), groupBy)
 import Data.Text (Text)
-import Servant (Application, Handler, Proxy (..), Server, serve)
+import Data.Text as T (intercalate, pack)
+import Data.Time (defaultTimeLocale, formatTime)
+import Katip
 import Servant.API (JSON, Post, ReqBody, (:>))
 import TextShow (showt)
+import TextShow.Data.Time ()
 import Prelude
 
-import Types.Request (Request (..))
-import Types.Response (Codomain (..), Response (..), Series (..))
+import MonadStack (AppM)
+import PersistenceStore.ClubMetrics (ClubMetrics (..))
+import PersistenceStore.Measurement (DbDate (..), Measurement (..))
+import PersistenceStore.SQLite (loadIntMeasurements, loadTextMeasurements)
+import Types.AppRequest (AppRequest (..))
+import Types.AppResponse (AppResponse (..), Codomain (..), Series (..))
 
-type DataApi = "measurements" :> "club" :> ReqBody '[JSON] Request :> Post '[JSON] (Response Text)
+type DataApi = "measurements" :> "club" :> ReqBody '[JSON] AppRequest :> Post '[JSON] AppResponse
 
-dataApi :: Proxy DataApi
-dataApi = Proxy
+processRequest :: AppRequest -> AppM AppResponse
+processRequest AppRequest{clubNumber, metrics, startDate, endDate} = do
+  logFM DebugS $
+    ls $
+      T.intercalate
+        ", "
+        ["processRequest", showt clubNumber, showt metrics, showt startDate, showt endDate]
+  intMeasurements <- loadIntMeasurements clubNumber metrics startDate endDate
+  logFM DebugS $ ls $ showt intMeasurements
+  textMeasurements <- loadTextMeasurements clubNumber metrics startDate endDate
+  logFM DebugS $ ls $ showt textMeasurements
+  let metricsAreEqual Measurement{metricId = m0} Measurement{metricId = m1} = m0 == m1
+      intMeasurementsByMetric = groupBy metricsAreEqual intMeasurements
+      intSeries = buildIntSeries . IntMeasurements <$> intMeasurementsByMetric
+      textMeasurementsByMetric = groupBy metricsAreEqual textMeasurements
+      textSeries = buildTextSeries . TextMeasurements <$> textMeasurementsByMetric
+  pure AppResponse{series = intSeries <> textSeries}
 
-app :: Application
-app = serve dataApi serveData
+newtype IntMeasurements = IntMeasurements (NonEmpty (Measurement Int))
+newtype TextMeasurements = TextMeasurements (NonEmpty (Measurement Text))
 
-serveData :: Server DataApi
-serveData = processRequest
+buildIntSeries :: IntMeasurements -> Series
+buildIntSeries (IntMeasurements (x :| xs)) = Series{label, domain, codomain}
+ where
+  metric :: ClubMetrics = toEnum $ metricId x
+  label = showt metric
+  split m (dateAcc, IntCodomain valueAcc) = (formatDbDate (date m) : dateAcc, IntCodomain (value m : valueAcc))
+  split _ (_, TextCodomain _) = undefined
+  (domain, codomain) = foldr split ([], IntCodomain []) (x : xs)
 
-processRequest :: Request -> Handler (Response Text)
-processRequest _ = pure response
+buildTextSeries :: TextMeasurements -> Series
+buildTextSeries (TextMeasurements (x :| xs)) = Series{label, domain, codomain}
+ where
+  metric :: ClubMetrics = toEnum $ metricId x
+  label = showt metric
+  split _ (_, IntCodomain _) = undefined
+  split m (dateAcc, TextCodomain valueAcc) = (formatDbDate (date m) : dateAcc, TextCodomain (value m : valueAcc))
+  (domain, codomain) = foldr split ([], TextCodomain []) (x : xs)
 
-dataArray :: [Series]
-dataArray = [Series{label = "Goal " <> showt (i :: Int), codomain = IntCodomain [0 .. 10]} | i <- [1 .. 10]]
-
-response :: Response Text
-response =
-  Response
-    { domain =
-        [ "July"
-        , "August"
-        , "September"
-        , "October"
-        , "November"
-        , "December"
-        , "January"
-        , "February"
-        , "March"
-        , "April"
-        , "May"
-        ]
-    , series = dataArray
-    }
+formatDbDate :: DbDate -> Text
+formatDbDate (DbDate day) = T.pack $ formatTime defaultTimeLocale "%F" day

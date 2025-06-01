@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..)) where
@@ -8,7 +9,7 @@ import Data.Text (Text)
 import Data.Time (Day)
 import Data.Time.Calendar.Month (Month (..))
 import GHC.Generics (Generic)
-import TextShow (showt)
+import TextShow (FromStringShow (..), TextShow, showt)
 import Prelude
 
 import PersistenceStore.Analyzer (Analyzer (..))
@@ -27,6 +28,7 @@ data ClubPerformanceReport = ClubPerformanceReport
   , records :: ![ClubPerformanceRecord]
   }
   deriving (Generic, Show)
+  deriving TextShow via FromStringShow ClubPerformanceReport
 
 data ClubPerformanceRecord = ClubPerformanceRecord
   { district :: !District
@@ -54,6 +56,7 @@ data ClubPerformanceRecord = ClubPerformanceRecord
   , distinguishedStatus :: !DistinguishedStatus
   }
   deriving (Generic, Show)
+  deriving TextShow via FromStringShow ClubPerformanceRecord
 instance FromNamedRecord ClubPerformanceRecord where
   parseNamedRecord r =
     ClubPerformanceRecord

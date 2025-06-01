@@ -12,7 +12,7 @@ import Safe (headMay)
 import TextShow (Builder, TextShow, fromString, showb)
 import Prelude
 
-import Types.SqlParsing (parseTextField)
+import PersistenceStore.FieldParsers (parseTextField)
 
 data Division = DivisionNotAssigned | Division Char
   deriving Eq
