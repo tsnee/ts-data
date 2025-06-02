@@ -13,6 +13,7 @@ import Servant (Application, Handler (..), hoistServer, serve)
 
 import Logging (initLogging)
 import MonadStack (AppM)
+import PersistenceStore.SQLite (DatabaseName)
 import Serve (DataApi, processRequest)
 
 port :: Int
@@ -29,11 +30,11 @@ corsResourcePolicy =
 handle :: LogEnv -> AppM a -> Handler a
 handle le app = Handler $ ExceptT $ try $ runKatipContextT le () "handle" app
 
-mkApp :: LogEnv -> Application
-mkApp le = do
-  serve (Proxy @DataApi) (hoistServer (Proxy @DataApi) (handle le) processRequest)
+mkApp :: DatabaseName -> LogEnv -> Application
+mkApp databaseName le = do
+  serve (Proxy @DataApi) $ hoistServer (Proxy @DataApi) (handle le) $ processRequest databaseName
 
 main :: IO ()
 main =
   bracket (initLogging "dev" "server") closeScribes $ \le -> do
-    run port $ cors (const (Just corsResourcePolicy)) $ mkApp le
+    run port $ cors (const (Just corsResourcePolicy)) $ mkApp (DatabaseName "dcp.sqlite") le

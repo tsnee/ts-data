@@ -36,7 +36,7 @@ import Prelude
 
 import Logging (initLogging)
 import MonadStack (AppM)
-import PersistenceStore.SQLite (saveReport)
+import PersistenceStore.SQLite (DatabaseName (..), saveReport)
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
 import Types.ClubPerformanceReportSpec qualified as CPRS
 import Types.District (District (..))
@@ -66,16 +66,16 @@ formatMonth = T.pack . formatTime defaultTimeLocale "%B %Y"
 formatDay :: Day -> Text
 formatDay = T.pack . formatTime defaultTimeLocale "%B %-d, %Y"
 
-downloadClubPerformanceStarting :: District -> Month -> Maybe Day -> AppM ()
-downloadClubPerformanceStarting district startMonth Nothing = startFromFirstReportingDate district startMonth $ periodFirstDay startMonth
-downloadClubPerformanceStarting district startMonth (Just dayOfRecord) = do
+downloadClubPerformanceStarting :: DatabaseName -> District -> Month -> Maybe Day -> AppM ()
+downloadClubPerformanceStarting databaseName district startMonth Nothing = startFromFirstReportingDate databaseName district startMonth $ periodFirstDay startMonth
+downloadClubPerformanceStarting databaseName district startMonth (Just dayOfRecord) = do
   result <- reportFromDayOfRecord district startMonth dayOfRecord
   case result of
     Left err -> logFM ErrorS $ ls err
     Right ClubPerformanceReport{records = []}
       | dayPeriod dayOfRecord == succ startMonth -> do
           logFM InfoS $ ls $ "No records found for day of record " <> formatDay dayOfRecord <> "."
-          downloadClubPerformanceStarting district (succ startMonth) (Just dayOfRecord)
+          downloadClubPerformanceStarting databaseName district (succ startMonth) (Just dayOfRecord)
       | otherwise ->
           logFM WarningS $
             ls $
@@ -85,11 +85,11 @@ downloadClubPerformanceStarting district startMonth (Just dayOfRecord) = do
                 <> formatDay dayOfRecord
                 <> ", giving up."
     Right report -> do
-      saveReport report
-      downloadClubPerformanceStarting district startMonth $ Just $ succ dayOfRecord
+      saveReport databaseName report
+      downloadClubPerformanceStarting databaseName district startMonth $ Just $ succ dayOfRecord
 
-startFromFirstReportingDate :: District -> Month -> Day -> AppM ()
-startFromFirstReportingDate district startMonth dayOfRecord = do
+startFromFirstReportingDate :: DatabaseName -> District -> Month -> Day -> AppM ()
+startFromFirstReportingDate databaseName district startMonth dayOfRecord = do
   result <- reportFromDayOfRecord district startMonth dayOfRecord
   case result of
     Left err -> logFM ErrorS $ ls err
@@ -101,14 +101,14 @@ startFromFirstReportingDate district startMonth dayOfRecord = do
             <> " not complete by "
             <> formatDay dayOfRecord
             <> "."
-      startFromFirstReportingDate district startMonth $ succ dayOfRecord
+      startFromFirstReportingDate databaseName district startMonth $ succ dayOfRecord
     Right report -> do
-      saveReport report
-      downloadClubPerformanceStarting district startMonth $ Just $ succ dayOfRecord
+      saveReport databaseName report
+      downloadClubPerformanceStarting databaseName district startMonth $ Just $ succ dayOfRecord
 
 download :: CPRS.ClubPerformanceReportSpec -> AppM (Either Text ClubPerformanceReport)
 download spec@CPRS.ClubPerformanceReportSpec{CPRS.format, CPRS.programYear} = do
-  le <- liftIO $ initLogging "download" "dev"
+  le <- liftIO $ initLogging "download" "dev" DebugS
   let logHeaders req = do
         runKatipContextT le () "http-headers" $ logFM DebugS $ ls $ show req
         pure req

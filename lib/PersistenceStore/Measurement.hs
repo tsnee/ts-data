@@ -21,11 +21,12 @@ import Types.ClubNumber (ClubNumber (..))
 
 newtype DbDate = DbDate Day
   deriving stock (Eq, Generic)
-  deriving (FromField, TextShow, ToField) via Day
+  deriving (FromField, Show, TextShow, ToField) via Day
 
 data Measurement a = Measurement {clubId :: !ClubNumber, metricId :: !Int, value :: !a, date :: !DbDate}
   deriving Generic
 deriving instance Eq a => Eq (Measurement a)
+deriving instance Show a => Show (Measurement a)
 deriving via
   FromGeneric (Measurement a)
   instance

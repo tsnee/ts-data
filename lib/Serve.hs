@@ -10,7 +10,7 @@ import Data.List.NonEmpty (NonEmpty (..), groupBy)
 import Data.Text (Text)
 import Data.Text as T (intercalate, pack)
 import Data.Time (defaultTimeLocale, formatTime)
-import Katip
+import Katip (Severity (..), logFM, ls)
 import Servant.API (JSON, Post, ReqBody, (:>))
 import TextShow (showt)
 import TextShow.Data.Time ()
@@ -19,22 +19,22 @@ import Prelude
 import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite (loadIntMeasurements, loadTextMeasurements)
+import PersistenceStore.SQLite (DatabaseName (..), loadIntMeasurements, loadTextMeasurements)
 import Types.AppRequest (AppRequest (..))
 import Types.AppResponse (AppResponse (..), Codomain (..), Series (..))
 
 type DataApi = "measurements" :> "club" :> ReqBody '[JSON] AppRequest :> Post '[JSON] AppResponse
 
-processRequest :: AppRequest -> AppM AppResponse
-processRequest AppRequest{clubNumber, metrics, startDate, endDate} = do
+processRequest :: DatabaseName -> AppRequest -> AppM AppResponse
+processRequest databaseName AppRequest{clubNumber, metrics, startDate, endDate} = do
   logFM DebugS $
     ls $
       "processRequest "
         <> T.intercalate ", " [showt clubNumber, showt metrics, showt startDate, showt endDate]
         <> " called."
-  intMeasurements <- loadIntMeasurements clubNumber metrics startDate endDate
+  intMeasurements <- loadIntMeasurements databaseName clubNumber metrics startDate endDate
   logFM DebugS $ ls $ "Found " <> showt intMeasurements <> " integer measurements."
-  textMeasurements <- loadTextMeasurements clubNumber metrics startDate endDate
+  textMeasurements <- loadTextMeasurements databaseName clubNumber metrics startDate endDate
   logFM DebugS $ ls $ "Found " <> showt textMeasurements <> " text measurements."
   let metricsAreEqual Measurement{metricId = m0} Measurement{metricId = m1} = m0 == m1
       intMeasurementsByMetric = groupBy metricsAreEqual intMeasurements
