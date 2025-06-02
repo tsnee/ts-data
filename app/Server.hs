@@ -15,6 +15,9 @@ import Logging (initLogging)
 import MonadStack (AppM)
 import Serve (DataApi, processRequest)
 
+port :: Int
+port = 8080
+
 corsResourcePolicy :: CorsResourcePolicy
 corsResourcePolicy =
   simpleCorsResourcePolicy
@@ -33,4 +36,4 @@ mkApp le = do
 main :: IO ()
 main =
   bracket (initLogging "dev" "server") closeScribes $ \le -> do
-    run 8080 $ cors (const (Just corsResourcePolicy)) $ mkApp le
+    run port $ cors (const (Just corsResourcePolicy)) $ mkApp le

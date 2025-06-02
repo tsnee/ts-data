@@ -1,7 +1,10 @@
-{-# LANGUAGE DataKinds, DerivingVia, OverloadedStrings, PatternSynonyms #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Download (CsvOctetStream (..), download, downloadClubPerformanceStarting) where
+module Download (CsvOctetStream (..), download, downloadClubPerformanceStarting, parseFooter) where
 
 import Data.ByteString.Lazy.Char8 qualified as BL8
 import Data.Csv (decodeByName)
@@ -22,7 +25,7 @@ import Data.Time
 import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
 import Data.Vector (toList)
-import Katip
+import Katip (Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
@@ -120,7 +123,13 @@ download spec@CPRS.ClubPerformanceReportSpec{CPRS.format, CPRS.programYear} = do
       runKatipContextT le () "csv" $
         logFM DebugS $
           ls $
-            "Downloaded " <> showt format <> " with " <> showt (length (records raw)) <> " records for " <> showt (formatDay (dayOfRecord raw)) <> "."
+            "Downloaded "
+              <> showt format
+              <> " with "
+              <> showt (length (records raw))
+              <> " records for "
+              <> showt (formatDay (dayOfRecord raw))
+              <> "."
       pure $ pure raw
 
 reportFromDayOfRecord :: District -> Month -> Day -> AppM (Either Text ClubPerformanceReport)
@@ -156,6 +165,7 @@ instance MimeUnrender CsvOctetStream ClubPerformanceReport where
     pure ClubPerformanceReport{dayOfRecord, month = YearMonth yearReported monthReported, records}
 
 -- Example footer: "Month of Apr, As of 05/01/2025"
+-- String type used by Cassava.
 parseFooter :: String -> Either String (MonthOfYear, Day)
 parseFooter footer = do
   let (monthPart, dayPart) = break (== ',') footer

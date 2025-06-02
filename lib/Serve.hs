@@ -29,13 +29,13 @@ processRequest :: AppRequest -> AppM AppResponse
 processRequest AppRequest{clubNumber, metrics, startDate, endDate} = do
   logFM DebugS $
     ls $
-      T.intercalate
-        ", "
-        ["processRequest", showt clubNumber, showt metrics, showt startDate, showt endDate]
+      "processRequest "
+        <> T.intercalate ", " [showt clubNumber, showt metrics, showt startDate, showt endDate]
+        <> " called."
   intMeasurements <- loadIntMeasurements clubNumber metrics startDate endDate
-  logFM DebugS $ ls $ showt intMeasurements
+  logFM DebugS $ ls $ "Found " <> showt intMeasurements <> " integer measurements."
   textMeasurements <- loadTextMeasurements clubNumber metrics startDate endDate
-  logFM DebugS $ ls $ showt textMeasurements
+  logFM DebugS $ ls $ "Found " <> showt textMeasurements <> " text measurements."
   let metricsAreEqual Measurement{metricId = m0} Measurement{metricId = m1} = m0 == m1
       intMeasurementsByMetric = groupBy metricsAreEqual intMeasurements
       intSeries = buildIntSeries . IntMeasurements <$> intMeasurementsByMetric

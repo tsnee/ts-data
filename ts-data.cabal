@@ -145,6 +145,7 @@ executable create-tables
         sqlite-simple >=0.4.19.0,
         text ^>=2.1.2,
         text-show ^>=3.11.1,
+        unliftio ^>=0.2.25.1,
         ts-data
 
     -- Directories containing source files.
@@ -266,6 +267,7 @@ test-suite ts-data-test
     -- Test dependencies.
     build-depends:
         base ^>=4.21,
+        servant ^>=0.20.2,
         tasty ^>=1.5.3,
         tasty-hunit ^>=0.10.2,
         text-show ^>=3.11.1,

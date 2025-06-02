@@ -1,14 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module Main where
 
+import Data.Time (pattern YearMonthDay)
+import Data.Time.Calendar.Month (pattern YearMonth)
+import Servant.API (toUrlPiece)
 import Test.Tasty
 import Test.Tasty.HUnit
-import TextShow (showt)
+import Prelude
 
+import Download (parseFooter)
 import PersistenceStore.SQLite (TableName (..), buildLoadMeasurementsQuery)
 import Types.ClubNumber (ClubNumber (..))
+import Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..))
 import Types.District (District (..))
+import Types.Format (Format (..))
+import Types.ProgramYear (ProgramYear (..))
 
 main :: IO ()
 main = defaultMain tests
@@ -18,7 +26,29 @@ tests =
   testGroup
     "ts-data"
     [ testGroup
-        "PersistenceStore"
+        "Download"
+        [ testGroup
+            "parseFooter"
+            [ testCase "Happy path" $ do
+                let footer = "Month of Apr, As of 05/01/2025"
+                    actual = parseFooter footer
+                    expected = Right (4, YearMonthDay 2025 5 1)
+                actual @?= expected
+            , testCase "Bad month" $ do
+                let footer = "Month of , As of 05/01/2025"
+                    actual = parseFooter footer
+                    expected = Left $ "Could not parse month from fragment 'Month of ' of CSV footer '" <> footer <> "'."
+                actual @?= expected
+            , testCase "Bad day" $ do
+                let footer = "Month of Apr, As of 13/01/2025"
+                    actual = parseFooter footer
+                    expected =
+                      Left $ "Could not parse date from fragment ', As of 13/01/2025' of CSV footer '" <> footer <> "'."
+                actual @?= expected
+            ]
+        ]
+    , testGroup
+        "PersistenceStore.SQLite"
         [ testGroup
             "buildLoadMeasurementsQuery"
             [ testCase "can build a query with empty [ClubMetrics]" $
@@ -34,9 +64,20 @@ tests =
             ]
         ]
     , testGroup
-        "Types"
+        "Types.ClubPerformanceReportSpec"
         [ testGroup
-            "Serialization"
-            [testCase "District is printed as a bare number" $ showt (District 117) @?= "117"]
+            "toUrlPiece"
+            [ testCase "Day of record is part of URL when present" $ do
+                let actual =
+                      toUrlPiece $
+                        ClubPerformanceReportSpec
+                          CSV
+                          (District 117)
+                          (YearMonth 2025 5)
+                          (YearMonthDay 2025 5 15)
+                          (ProgramYear 2024)
+                    expected = "clubperformance~117~05/31/2025~05/15/2025~2024-2025"
+                actual @?= expected
+            ]
         ]
     ]
