@@ -19,7 +19,7 @@ import Prelude
 import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite (DatabaseName (..), loadIntMeasurements, loadTextMeasurements)
+import PersistenceStore.SQLite.Class (DatabaseName (..), loadIntMeasurements, loadTextMeasurements)
 import Types.AppRequest (AppRequest (..))
 import Types.AppResponse (AppResponse (..), Codomain (..), Series (..))
 

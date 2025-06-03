@@ -19,17 +19,17 @@ showDay = T.pack . formatTime defaultTimeLocale "%m/%d/%Y"
 data ClubPerformanceReportSpec = ClubPerformanceReportSpec
   { format :: !Format
   , district :: !District
-  , month :: !Month
-  , reportedOn :: !Day
+  , reportMonth :: !Month
+  , asOf :: !Day
   , programYear :: !ProgramYear
   }
 instance ToHttpApiData ClubPerformanceReportSpec where
-  toUrlPiece ClubPerformanceReportSpec{district, month, reportedOn, programYear} =
+  toUrlPiece ClubPerformanceReportSpec{district, reportMonth, asOf, programYear} =
     T.intercalate
       "~"
       [ "clubperformance"
       , showt district
-      , showDay $ periodLastDay month
-      , showDay reportedOn
+      , showDay $ periodLastDay reportMonth
+      , showDay asOf
       , showt programYear
       ]

@@ -4,6 +4,11 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE TypeOperators #-}
 
+{- |
+Module      : Download
+Description : Functions for downloading club performance reports.
+Maintainer  : tomsnee@gmail.com
+-}
 module Download (CsvOctetStream (..), download, downloadClubPerformanceStarting, parseFooter) where
 
 import Data.ByteString.Lazy.Char8 qualified as BL8
@@ -12,143 +17,145 @@ import Data.Either.Combinators (maybeToRight)
 import Data.List (unsnoc)
 import Data.Proxy (Proxy (..))
 import Data.Text (Text)
-import Data.Text qualified as T
+import Data.Text qualified as T (pack, show)
 import Data.Time
   ( Day (..)
   , MonthOfYear
   , dayPeriod
   , diffDays
-  , periodFirstDay
+  , getCurrentTime
   , periodLastDay
+  , utctDay
   , pattern July
   )
 import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
 import Data.Vector (toList)
-import Katip (Severity (..), logFM, ls, runKatipContextT)
+import Katip (LogEnv, Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
-import Servant.Client (BaseUrl (..), ClientM, Scheme (..), client, mkClientEnv, runClientM)
-import TextShow (showt)
+import Servant.Client
+  ( BaseUrl (..)
+  , ClientEnv (..)
+  , ClientError
+  , Scheme (..)
+  , client
+  , mkClientEnv
+  , runClientM
+  )
 import UnliftIO (liftIO)
 import Prelude
 
 import Logging (initLogging)
 import MonadStack (AppM)
-import PersistenceStore.SQLite (DatabaseName (..), saveReport)
+import PersistenceStore.SQLite.Class (DatabaseName (..), saveReport)
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
-import Types.ClubPerformanceReportSpec qualified as CPRS
+import Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..))
 import Types.District (District (..))
 import Types.Format (Format (..))
 import Types.ProgramYear (ProgramYear (..))
 
+-- | Number of days to try downloading a report before giving up.
+maxLagDays :: Integer
+maxLagDays = 15
+
+-- | Club performance report API
 type ClubPerformanceAPI =
   Capture "programYear" ProgramYear
     :> "export.aspx"
     :> QueryParam "type" Format
-    :> QueryParam "report" CPRS.ClubPerformanceReportSpec
+    :> QueryParam "report" ClubPerformanceReportSpec
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
-clubPerformanceApi :: Proxy ClubPerformanceAPI
-clubPerformanceApi = Proxy
+downloadClubPerformanceStarting :: DatabaseName -> District -> Day -> AppM ()
+downloadClubPerformanceStarting databaseName district dayOfRecord = do
+  servantEnv <- mkServantClientEnv
+  downloadClubPerformance servantEnv databaseName district dayOfRecord $ pred $ dayPeriod dayOfRecord
 
-downloadClubPerformanceApi
-  :: ProgramYear
-  -> Maybe Format
-  -> Maybe CPRS.ClubPerformanceReportSpec
-  -> ClientM ClubPerformanceReport
-downloadClubPerformanceApi = client clubPerformanceApi
+mkServantClientEnv :: AppM ClientEnv
+mkServantClientEnv = do
+  logEnv <- mkLogEnv
+  let logHeaders req = do
+        runKatipContextT logEnv () "http-headers" $ logFM DebugS $ ls $ show req
+        pure req
+      managerSettings = tlsManagerSettings{managerModifyRequest = logHeaders}
+  manager <- liftIO $ newManager managerSettings
+  pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
 
-formatMonth :: Month -> Text
-formatMonth = T.pack . formatTime defaultTimeLocale "%B %Y"
+mkLogEnv :: AppM LogEnv
+mkLogEnv = liftIO $ initLogging "download" "dev" DebugS
 
-formatDay :: Day -> Text
-formatDay = T.pack . formatTime defaultTimeLocale "%B %-d, %Y"
-
-downloadClubPerformanceStarting :: DatabaseName -> District -> Month -> Maybe Day -> AppM ()
-downloadClubPerformanceStarting databaseName district startMonth Nothing = startFromFirstReportingDate databaseName district startMonth $ periodFirstDay startMonth
-downloadClubPerformanceStarting databaseName district startMonth (Just dayOfRecord) = do
-  result <- reportFromDayOfRecord district startMonth dayOfRecord
+downloadClubPerformance :: ClientEnv -> DatabaseName -> District -> Day -> Month -> AppM ()
+downloadClubPerformance servantEnv databaseName district dayOfRecord reportingMonth = do
+  let eom = periodLastDay reportingMonth
+      lagDays = diffDays dayOfRecord eom
+  result <- reportFromDayOfRecord servantEnv district reportingMonth dayOfRecord
+  runDate <- today
   case result of
     Left err -> logFM ErrorS $ ls err
     Right ClubPerformanceReport{records = []}
-      | dayPeriod dayOfRecord == succ startMonth -> do
-          logFM InfoS $ ls $ "No records found for day of record " <> formatDay dayOfRecord <> "."
-          downloadClubPerformanceStarting databaseName district (succ startMonth) (Just dayOfRecord)
+      | dayOfRecord >= runDate -> logFM NoticeS "Done."
+      | dayPeriod dayOfRecord == succ reportingMonth -> do
+          logFM DebugS $
+            ls $
+              mconcat
+                [ "No records found for "
+                , formatMonth reportingMonth
+                , " on "
+                , formatDay dayOfRecord
+                , " - assume month-end reporting completed the previous day."
+                ]
+          downloadClubPerformance servantEnv databaseName district dayOfRecord $ succ reportingMonth
+      | lagDays < maxLagDays -> do
+          logFM DebugS $
+            ls $
+              mconcat
+                [ "No records found for "
+                , formatMonth reportingMonth
+                , " by "
+                , formatDay dayOfRecord
+                , ", trying next day."
+                ]
+          downloadClubPerformance servantEnv databaseName district (succ dayOfRecord) reportingMonth
       | otherwise ->
           logFM WarningS $
             ls $
-              "Could not download data for "
-                <> formatMonth startMonth
-                <> " by "
-                <> formatDay dayOfRecord
-                <> ", giving up."
+              mconcat
+                [ "No records found for "
+                , formatMonth reportingMonth
+                , " by "
+                , formatDay dayOfRecord
+                , ", giving up."
+                ]
     Right report -> do
       saveReport databaseName report
-      downloadClubPerformanceStarting databaseName district startMonth $ Just $ succ dayOfRecord
+      downloadClubPerformance servantEnv databaseName district (succ dayOfRecord) reportingMonth
 
-startFromFirstReportingDate :: DatabaseName -> District -> Month -> Day -> AppM ()
-startFromFirstReportingDate databaseName district startMonth dayOfRecord = do
-  result <- reportFromDayOfRecord district startMonth dayOfRecord
-  case result of
-    Left err -> logFM ErrorS $ ls err
-    Right ClubPerformanceReport{records = []} -> do
-      logFM InfoS $
-        ls $
-          "Month-end processing for "
-            <> formatMonth startMonth
-            <> " not complete by "
-            <> formatDay dayOfRecord
-            <> "."
-      startFromFirstReportingDate databaseName district startMonth $ succ dayOfRecord
-    Right report -> do
-      saveReport databaseName report
-      downloadClubPerformanceStarting databaseName district startMonth $ Just $ succ dayOfRecord
+reportFromDayOfRecord
+  :: ClientEnv -> District -> Month -> Day -> AppM (Either Text ClubPerformanceReport)
+reportFromDayOfRecord servantEnv district reportingMonth dayOfRecord = download servantEnv spec
+ where
+  YearMonth reportingYear reportingMonthOfYear = reportingMonth
+  programYear = ProgramYear $ if reportingMonthOfYear < July then pred reportingYear else reportingYear
+  spec = ClubPerformanceReportSpec CSV district reportingMonth dayOfRecord programYear
 
-download :: CPRS.ClubPerformanceReportSpec -> AppM (Either Text ClubPerformanceReport)
-download spec@CPRS.ClubPerformanceReportSpec{CPRS.format, CPRS.programYear} = do
-  le <- liftIO $ initLogging "download" "dev" DebugS
-  let logHeaders req = do
-        runKatipContextT le () "http-headers" $ logFM DebugS $ ls $ show req
-        pure req
-      managerSettings = tlsManagerSettings{managerModifyRequest = logHeaders}
-      api = downloadClubPerformanceApi programYear (Just format) (Just spec)
-  manager <- liftIO $ newManager managerSettings
-  let clientEnv = mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
-  result <- liftIO $ runClientM api clientEnv
+download :: ClientEnv -> ClubPerformanceReportSpec -> AppM (Either Text ClubPerformanceReport)
+download env spec@ClubPerformanceReportSpec{format} = do
+  result <- fetchClubPerformanceReport env spec
   case result of
     Left err -> pure $ Left $ T.pack $ show err
     Right raw -> do
-      runKatipContextT le () "csv" $
-        logFM DebugS $
-          ls $
-            "Downloaded "
-              <> showt format
-              <> " with "
-              <> showt (length (records raw))
-              <> " records for "
-              <> showt (formatDay (dayOfRecord raw))
-              <> "."
-      pure $ pure raw
-
-reportFromDayOfRecord :: District -> Month -> Day -> AppM (Either Text ClubPerformanceReport)
-reportFromDayOfRecord district reportingMonth dayOfRecord = do
-  let YearMonth reportingYear reportingMonthOfYear = reportingMonth
-      programYear = ProgramYear $ if reportingMonthOfYear < July then pred reportingYear else reportingYear
-      spec = CPRS.ClubPerformanceReportSpec CSV district reportingMonth dayOfRecord programYear
-      reportingLagDays = diffDays dayOfRecord $ periodLastDay reportingMonth
-  if reportingLagDays > 15
-    then
-      pure $
-        Left $
-          "Could not get club performance report for "
-            <> formatMonth reportingMonth
-            <> " by "
-            <> formatDay dayOfRecord
+      logFM DebugS $
+        ls $
+          "Downloaded "
+            <> T.show format
+            <> " with "
+            <> T.show (length (records raw))
+            <> " records for "
+            <> T.show (formatDay (dayOfRecord raw))
             <> "."
-    else
-      download spec
+      pure $ pure raw
 
 newtype CsvOctetStream = CsvOctetStream OctetStream
   deriving Accept via OctetStream
@@ -181,3 +188,21 @@ parseFooter footer = do
       ("Could not parse date from fragment '" <> dayPart <> "' of CSV footer '" <> footer <> "'.")
       dayOfRecordM
   pure (monthOfYear, dayOfRecord)
+
+fetchClubPerformanceReport
+  :: ClientEnv
+  -> ClubPerformanceReportSpec
+  -> AppM (Either ClientError ClubPerformanceReport)
+fetchClubPerformanceReport servantEnv spec = liftIO $ runClientM clientM servantEnv
+ where
+  clientStub = client (Proxy :: Proxy ClubPerformanceAPI)
+  clientM = clientStub (programYear spec) (Just (format spec)) $ Just spec
+
+today :: AppM Day
+today = liftIO $ utctDay <$> getCurrentTime
+
+formatMonth :: Month -> Text
+formatMonth = T.pack . formatTime defaultTimeLocale "%B %Y"
+
+formatDay :: Day -> Text
+formatDay = T.pack . formatTime defaultTimeLocale "%B %-d, %Y"

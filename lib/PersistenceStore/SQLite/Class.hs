@@ -6,7 +6,7 @@ Module      : PersistenceStore.SQLite
 Description : Persistence code specific to the SQLite implementation.
 Maintainer  : tomsnee@gmail.com
 -}
-module PersistenceStore.SQLite
+module PersistenceStore.SQLite.Class
   ( DatabaseName (..)
   , TableName (..)
   , intMeasurementTable
@@ -41,7 +41,7 @@ import Database.SQLite.Simple
   , queryNamed
   )
 import Database.SQLite.Simple.ToField (ToField)
-import Katip
+import Katip (Severity(..), ls, logFM)
 import UnliftIO (bracket, liftIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude
@@ -104,9 +104,8 @@ loadMeasurements
   -> Maybe Day
   -> Maybe Day
   -> AppM [Measurement a]
-loadMeasurements databaseName tableName clubNumber metrics startM endM = do
-  conn <- openDatabase databaseName
-  loadMeasurementsWithConnection conn tableName clubNumber metrics startM endM
+loadMeasurements databaseName tableName clubNumber metrics startM endM = withDatabase databaseName $
+  \conn -> loadMeasurementsWithConnection conn tableName clubNumber metrics startM endM
 
 loadMeasurementsWithConnection
   :: forall a
@@ -211,9 +210,7 @@ buildDateSubQuery (TableName tableNameQ) metric startM endM =
     (Nothing, Nothing) -> mconcat [" AND ", startDateParmQ, " IS NULL AND ", endDateParmQ, " IS NULL"]
 
 saveReport :: DatabaseName -> ClubPerformanceReport -> AppM ()
-saveReport databaseName report = do
-  conn <- openDatabase databaseName
-  saveReportWithConnection conn report
+saveReport databaseName report = withDatabase databaseName $ flip saveReportWithConnection report
 
 saveReportWithConnection :: Connection -> ClubPerformanceReport -> AppM ()
 saveReportWithConnection conn ClubPerformanceReport{dayOfRecord, month, records} = traverse_ (saveRecord conn dayOfRecord month) records

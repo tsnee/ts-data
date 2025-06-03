@@ -5,7 +5,7 @@ module Main where
 import Control.Exception (bracket, try)
 import Control.Monad.Except (ExceptT (..))
 import Data.Proxy (Proxy (..))
-import Katip (LogEnv, closeScribes, runKatipContextT)
+import Katip (LogEnv, Severity (..), closeScribes, runKatipContextT)
 import Network.HTTP.Types (hContentType)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors, simpleCorsResourcePolicy)
@@ -13,7 +13,7 @@ import Servant (Application, Handler (..), hoistServer, serve)
 
 import Logging (initLogging)
 import MonadStack (AppM)
-import PersistenceStore.SQLite (DatabaseName)
+import PersistenceStore.SQLite.Class (DatabaseName (..))
 import Serve (DataApi, processRequest)
 
 port :: Int
@@ -36,5 +36,5 @@ mkApp databaseName le = do
 
 main :: IO ()
 main =
-  bracket (initLogging "dev" "server") closeScribes $ \le -> do
+  bracket (initLogging "dev" "server" DebugS) closeScribes $ \le -> do
     run port $ cors (const (Just corsResourcePolicy)) $ mkApp (DatabaseName "dcp.sqlite") le

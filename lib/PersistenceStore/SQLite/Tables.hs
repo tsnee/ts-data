@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module PersistenceStore.Tables where
+module PersistenceStore.SQLite.Tables where
 
 import Data.Foldable (traverse_)
 import Database.SQLite.Simple
@@ -18,7 +18,7 @@ import Prelude
 
 import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics)
-import PersistenceStore.SQLite
+import PersistenceStore.SQLite.Class
   ( DatabaseName (..)
   , TableName (..)
   , intMeasurementTable
