@@ -98,6 +98,7 @@ library
         basic-prelude ^>=0.7.0,
         bytestring ^>=0.12.0.2,
         cassava ^>=0.5.3.2,
+        containers ^>=0.7,
         either ^>=5.0.2,
         http-client ^>=0.7.19,
         http-client-tls ^>=0.3.6.4,
@@ -253,6 +254,7 @@ test-suite ts-data-test
     -- Modules included in this executable, other than Main.
     other-modules:
         Unit.Apps,
+        Unit.Libs,
         Unit.Types,
         System.Persistence
 
@@ -276,6 +278,7 @@ test-suite ts-data-test
         sqlite-simple >=0.4.19.0,
         tasty ^>=1.5.3,
         tasty-hunit ^>=0.10.2,
+        text ^>=2.1.2,
         time ^>=1.14,
         unliftio ^>=0.2.25.1,
         ts-data

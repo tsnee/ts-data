@@ -152,7 +152,7 @@ buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, parms)
         parm = metricIdParm metric := fromEnum metric
     pure (subQuery, parm)
   (subQueries, parms) = unzip queriesAndParms
-  query = mconcat (intersperse " UNION ALL " subQueries) <> " ORDER BY date ASC;"
+  query = mconcat (intersperse " UNION ALL " subQueries) <> " ORDER BY metric_id"
 
 buildLoadMeasurementsSubQuery
   :: TableName -> ClubMetrics -> Maybe Day -> Maybe Day -> Query
