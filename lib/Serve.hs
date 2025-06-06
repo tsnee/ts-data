@@ -24,7 +24,8 @@ import Prelude
 import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite.Class (DatabaseName (..), loadIntMeasurements, loadTextMeasurements)
+import PersistenceStore.SQLite.Class (DatabaseName (..))
+import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Types.AppRequest (AppRequest (..))
 import Types.AppResponse (AppResponse (..), Codomain (..), Series (..))
 
@@ -45,19 +46,19 @@ processRequest databaseName AppRequest{clubNumber, metrics, startDate, endDate} 
       textSeries = buildTextSeries textMeasurements
   pure AppResponse{series = intSeries <> textSeries}
 
--- | Converts a list of Measurement Int, sorted by metricId, to a Series.
+-- | Converts a list of Measurement Int, sorted by metricId, to a list of Series.
 buildIntSeries :: [Measurement Int] -> [Series]
-buildIntSeries xs = toSeries IntCodomain <$> (groupWith metricId xs)
+buildIntSeries xs = toSeries IntCodomain <$> groupWith metricId xs
 
--- | Converts a list of Measurement Text, sorted by metricId, to a Series.
+-- | Converts a list of Measurement Text, sorted by metricId, to a list of Series.
 buildTextSeries :: [Measurement Text] -> [Series]
-buildTextSeries xs = toSeries TextCodomain <$> (groupWith metricId xs)
+buildTextSeries xs = toSeries TextCodomain <$> groupWith metricId xs
 
 toSeries :: forall a. ([a] -> Codomain) -> NonEmpty (Measurement a) -> Series
 toSeries toCodomain nel@(m :| _) = Series label domain codomain
  where
   label = T.show (toEnum (metricId m) :: ClubMetrics)
-  domain = toList $ (formatDbDate . date) <$> nel
+  domain = toList $ formatDbDate . date <$> nel
   codomain = toCodomain $ toList $ value <$> nel
 
 formatDbDate :: DbDate -> Text

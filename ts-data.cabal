@@ -68,6 +68,8 @@ library
         PersistenceStore.FieldParsers,
         PersistenceStore.Measurement,
         PersistenceStore.SQLite.Class,
+        PersistenceStore.SQLite.Insert,
+        PersistenceStore.SQLite.Query,
         PersistenceStore.SQLite.Tables,
         Serve,
         Types.AppRequest,

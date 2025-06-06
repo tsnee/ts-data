@@ -49,7 +49,8 @@ import Prelude
 
 import Logging (initLogging)
 import MonadStack (AppM)
-import PersistenceStore.SQLite.Class (DatabaseName (..), saveReport)
+import PersistenceStore.SQLite.Class (DatabaseName (..))
+import PersistenceStore.SQLite.Insert (saveReport)
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
 import Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..))
 import Types.District (District (..))

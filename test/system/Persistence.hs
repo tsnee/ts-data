@@ -13,13 +13,9 @@ import Prelude
 
 import MonadStack (AppM, testAppM)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite.Class
-  ( loadIntMeasurementsWithConnection
-  , saveClubIfNecessary
-  , saveIntMeasurement
-  , testDatabase
-  , withDatabase
-  )
+import PersistenceStore.SQLite.Class (testDatabase, withDatabase)
+import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
+import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
 import Types.ClubNumber (ClubNumber (..))
 
