@@ -17,6 +17,7 @@ main :: IO ()
 main =
   runAppM
     Conf{db = DatabaseName "dcp.sqlite", env = "dev", ns = "download-reports", sev = InfoS, v = V3}
-    () $ do
-    createTables
-    downloadClubPerformanceStarting (District 117) (YearMonthDay 2024 7 1)
+    ()
+    $ do
+      createTables
+      downloadClubPerformanceStarting (District 117) (YearMonthDay 2024 7 1)

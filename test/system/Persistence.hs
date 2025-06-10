@@ -14,9 +14,8 @@ import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
 import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
-import Types.ClubNumber (ClubNumber (..))
 import System.AppTestCase (appTestCase)
-
+import Types.ClubNumber (ClubNumber (..))
 
 tests :: TestTree
 tests =
