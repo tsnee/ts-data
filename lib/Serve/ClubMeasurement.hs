@@ -2,21 +2,14 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators #-}
 
-module Serve
-  ( AppM
-  , DataApi
-  , buildIntSeries -- for tests
-  , processRequest
-  ) where
+module Serve.ClubMeasurement (buildIntSeries, processClubMeasurementRequest) where
 
 import Data.List.NonEmpty (NonEmpty (..), groupWith, toList)
 import Data.Text (Text)
 import Data.Text as T (intercalate, pack, show)
 import Data.Time (defaultTimeLocale, formatTime)
 import Katip (Severity (..), logFM, ls)
-import Servant.API (JSON, Post, ReqBody, (:>))
 import TextShow (showt)
 import TextShow.Data.Time ()
 import Prelude
@@ -24,27 +17,24 @@ import Prelude
 import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite.Class (DatabaseName (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
-import Types.AppRequest (AppRequest (..))
-import Types.AppResponse (AppResponse (..), Codomain (..), Series (..))
+import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
+import Types.ClubMeasurementResponse (ClubMeasurementResponse (..), Codomain (..), Series (..))
 
-type DataApi = "measurements" :> "club" :> ReqBody '[JSON] AppRequest :> Post '[JSON] AppResponse
-
-processRequest :: DatabaseName -> AppRequest -> AppM AppResponse
-processRequest databaseName AppRequest{clubNumber, metrics, startDate, endDate} = do
+processClubMeasurementRequest :: ClubMeasurementRequest -> AppM ClubMeasurementResponse
+processClubMeasurementRequest ClubMeasurementRequest{clubNumber, metrics, startDate, endDate} = do
   logFM DebugS $
     ls $
       "processRequest "
         <> T.intercalate ", " [showt clubNumber, showt metrics, showt startDate, showt endDate]
         <> " called."
-  intMeasurements <- loadIntMeasurements databaseName clubNumber metrics startDate endDate
+  intMeasurements <- loadIntMeasurements clubNumber metrics startDate endDate
   logFM DebugS $ ls $ "Found " <> showt intMeasurements <> " integer measurements."
-  textMeasurements <- loadTextMeasurements databaseName clubNumber metrics startDate endDate
+  textMeasurements <- loadTextMeasurements clubNumber metrics startDate endDate
   logFM DebugS $ ls $ "Found " <> showt textMeasurements <> " text measurements."
   let intSeries = buildIntSeries intMeasurements
       textSeries = buildTextSeries textMeasurements
-  pure AppResponse{series = intSeries <> textSeries}
+  pure ClubMeasurementResponse{series = intSeries <> textSeries}
 
 -- | Converts a list of Measurement Int, sorted by metricId, to a list of Series.
 buildIntSeries :: [Measurement Int] -> [Series]

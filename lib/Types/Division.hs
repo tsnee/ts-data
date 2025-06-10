@@ -1,13 +1,16 @@
+{-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Types.Division (Division (..)) where
 
-import Data.Csv qualified as CSV
+import Autodocodec (HasCodec, bimapCodec, codec, (<?>))
+import Data.Csv qualified as CSV (FromField, Parser, parseField)
 import Data.Text (Text)
-import Data.Text qualified as T
+import Data.Text qualified as T (pack, unpack)
 import Database.SQLite.Simple (SQLData (..))
 import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
+import GHC.Generics (Generic)
 import Safe (headMay)
 import TextShow (Builder, TextShow, fromString, showb)
 import Prelude
@@ -15,7 +18,7 @@ import Prelude
 import PersistenceStore.FieldParsers (parseTextField)
 
 data Division = DivisionNotAssigned | Division Char
-  deriving Eq
+  deriving (Eq, Generic, Ord)
 instance CSV.FromField Division where
   parseField s
     | s == "0D" = pure DivisionNotAssigned
@@ -26,6 +29,15 @@ instance FromField Division where
     parseDivision :: Text -> Maybe Division
     parseDivision "0" = pure DivisionNotAssigned
     parseDivision d = Division <$> (headMay . T.unpack) d
+instance HasCodec Division where
+  codec = bimapCodec dec enc codec <?> "Division letter (A-Z), or 'DivisionNotAssigned' if not assigned"
+   where
+    enc DivisionNotAssigned = "DivisionNotAssigned"
+    enc (Division d) = [d]
+
+    dec "DivisionNotAssigned" = pure DivisionNotAssigned
+    dec [c] = pure $ Division c
+    dec _ = Left "Expected 'DivisionNotAssigned' or a single character (A-Z) for Division"
 instance Show Division where
   show DivisionNotAssigned = "DivisionNotAssigned"
   show (Division d) = [d]

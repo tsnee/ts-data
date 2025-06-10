@@ -11,6 +11,7 @@ Maintainer  : tomsnee@gmail.com
 -}
 module Download (CsvOctetStream (..), download, downloadClubPerformanceStarting, parseFooter) where
 
+import Control.Monad.Reader (ask)
 import Data.ByteString.Lazy.Char8 qualified as BL8
 import Data.Csv (decodeByName)
 import Data.Either.Combinators (maybeToRight)
@@ -31,7 +32,7 @@ import Data.Time
 import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, formatTime, parseTimeM)
 import Data.Vector (toList)
-import Katip (LogEnv, Severity (..), logFM, ls, runKatipContextT)
+import Katip (Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
@@ -47,10 +48,9 @@ import Servant.Client
 import UnliftIO (liftIO)
 import Prelude
 
-import Logging (initLogging)
 import MonadStack (AppM)
-import PersistenceStore.SQLite.Class (DatabaseName (..))
 import PersistenceStore.SQLite.Insert (saveReport)
+import Types.AppEnv (AppEnv (..))
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
 import Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..))
 import Types.District (District (..))
@@ -69,14 +69,14 @@ type ClubPerformanceAPI =
     :> QueryParam "report" ClubPerformanceReportSpec
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
-downloadClubPerformanceStarting :: DatabaseName -> District -> Day -> AppM ()
-downloadClubPerformanceStarting databaseName district dayOfRecord = do
+downloadClubPerformanceStarting :: District -> Day -> AppM ()
+downloadClubPerformanceStarting district dayOfRecord = do
   servantEnv <- mkServantClientEnv
-  downloadClubPerformance servantEnv databaseName district dayOfRecord $ pred $ dayPeriod dayOfRecord
+  downloadClubPerformance servantEnv district dayOfRecord $ pred $ dayPeriod dayOfRecord
 
 mkServantClientEnv :: AppM ClientEnv
 mkServantClientEnv = do
-  logEnv <- mkLogEnv
+  AppEnv{logEnv} <- ask
   let logHeaders req = do
         runKatipContextT logEnv () "http-headers" $ logFM DebugS $ ls $ show req
         pure req
@@ -84,11 +84,8 @@ mkServantClientEnv = do
   manager <- liftIO $ newManager managerSettings
   pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
 
-mkLogEnv :: AppM LogEnv
-mkLogEnv = liftIO $ initLogging "download" "dev" DebugS
-
-downloadClubPerformance :: ClientEnv -> DatabaseName -> District -> Day -> Month -> AppM ()
-downloadClubPerformance servantEnv databaseName district dayOfRecord reportingMonth = do
+downloadClubPerformance :: ClientEnv -> District -> Day -> Month -> AppM ()
+downloadClubPerformance servantEnv district dayOfRecord reportingMonth = do
   let eom = periodLastDay reportingMonth
       lagDays = diffDays dayOfRecord eom
   result <- reportFromDayOfRecord servantEnv district reportingMonth dayOfRecord
@@ -107,7 +104,7 @@ downloadClubPerformance servantEnv databaseName district dayOfRecord reportingMo
                 , formatDay dayOfRecord
                 , " - assume month-end reporting completed the previous day."
                 ]
-          downloadClubPerformance servantEnv databaseName district dayOfRecord $ succ reportingMonth
+          downloadClubPerformance servantEnv district dayOfRecord $ succ reportingMonth
       | lagDays < maxLagDays -> do
           logFM DebugS $
             ls $
@@ -118,7 +115,7 @@ downloadClubPerformance servantEnv databaseName district dayOfRecord reportingMo
                 , formatDay dayOfRecord
                 , ", trying next day."
                 ]
-          downloadClubPerformance servantEnv databaseName district (succ dayOfRecord) reportingMonth
+          downloadClubPerformance servantEnv district (succ dayOfRecord) reportingMonth
       | otherwise ->
           logFM WarningS $
             ls $
@@ -130,8 +127,8 @@ downloadClubPerformance servantEnv databaseName district dayOfRecord reportingMo
                 , ", giving up."
                 ]
     Right report -> do
-      saveReport databaseName report
-      downloadClubPerformance servantEnv databaseName district (succ dayOfRecord) reportingMonth
+      saveReport report
+      downloadClubPerformance servantEnv district (succ dayOfRecord) reportingMonth
 
 reportFromDayOfRecord
   :: ClientEnv -> District -> Month -> Day -> AppM (Either Text ClubPerformanceReport)

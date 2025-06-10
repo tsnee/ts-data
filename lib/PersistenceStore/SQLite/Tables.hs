@@ -19,8 +19,7 @@ import Prelude
 import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics)
 import PersistenceStore.SQLite.Class
-  ( DatabaseName (..)
-  , TableName (..)
+  ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable
   , withDatabase
@@ -28,8 +27,8 @@ import PersistenceStore.SQLite.Class
 
 newtype ColumnType = ColumnType Query
 
-createTables :: DatabaseName -> AppM ()
-createTables databaseName = withDatabase databaseName createTablesWithConnection
+createTables :: AppM ()
+createTables = withDatabase createTablesWithConnection
 
 createTablesWithConnection :: Connection -> AppM ()
 createTablesWithConnection conn = do

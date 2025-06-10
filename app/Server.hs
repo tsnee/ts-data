@@ -2,22 +2,37 @@
 
 module Main where
 
-import Control.Exception (bracket, try)
-import Control.Monad.Except (ExceptT (..))
-import Data.Proxy (Proxy (..))
-import Katip (LogEnv, Severity (..), closeScribes, runKatipContextT)
+import Katip (LogItem (..), Severity (..), Verbosity (..))
 import Network.HTTP.Types (hContentType)
+import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors, simpleCorsResourcePolicy)
-import Servant (Application, Handler (..), hoistServer, serve)
+import Servant (Proxy (..))
+import Servant.API ((:<|>) (..))
+import Servant.Server (Application, ServerT, hoistServer, serve)
+import UnliftIO (liftIO)
 
-import Logging (initLogging)
-import MonadStack (AppM)
-import PersistenceStore.SQLite.Class (DatabaseName (..))
-import Serve (DataApi, processRequest)
+import MonadStack (AppM, runAppM)
+import Serve.Class (Api)
+import Serve.ClubMeasurement (processClubMeasurementRequest)
+import Serve.ClubMetadata (processClubMetadataRequest)
+import Types.Conf (Conf (..))
+import Types.DatabaseName (DatabaseName (..))
 
 port :: Int
 port = 8080
+
+dcpDb :: DatabaseName
+dcpDb = DatabaseName "dcp.sqlite"
+
+server :: ServerT Api AppM
+server = processClubMeasurementRequest :<|> processClubMetadataRequest
+
+api :: Proxy Api
+api = Proxy
+
+mkApp :: LogItem c => Conf -> c -> Application
+mkApp conf ctx = serve api $ hoistServer api (liftIO . runAppM conf ctx) server
 
 corsResourcePolicy :: CorsResourcePolicy
 corsResourcePolicy =
@@ -27,14 +42,10 @@ corsResourcePolicy =
     , corsRequestHeaders = [hContentType]
     }
 
-handle :: LogEnv -> AppM a -> Handler a
-handle le app = Handler $ ExceptT $ try $ runKatipContextT le () "handle" app
-
-mkApp :: DatabaseName -> LogEnv -> Application
-mkApp databaseName le = do
-  serve (Proxy @DataApi) $ hoistServer (Proxy @DataApi) (handle le) $ processRequest databaseName
+middleware :: Middleware
+middleware = cors $ const $ Just corsResourcePolicy
 
 main :: IO ()
-main =
-  bracket (initLogging "dev" "server" DebugS) closeScribes $ \le -> do
-    run port $ cors (const (Just corsResourcePolicy)) $ mkApp (DatabaseName "dcp.sqlite") le
+main = do
+  let conf = Conf{db = dcpDb, env = "dev", ns = "server", sev = DebugS, v = V3}
+  run port $ middleware $ mkApp conf ()

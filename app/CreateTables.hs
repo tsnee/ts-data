@@ -3,14 +3,20 @@
 module Main where
 
 import Database.SQLite.Simple (Query)
-import Katip (Severity (DebugS))
+import Katip (Severity (..), Verbosity (..))
 import Prelude
 
 import MonadStack (runAppM)
-import PersistenceStore.SQLite.Class (DatabaseName (..))
 import PersistenceStore.SQLite.Tables (createTables)
+import Types.Conf (Conf (..))
+import Types.DatabaseName (DatabaseName (..))
 
 newtype ColumnType = ColumnType Query
 
+dcp :: DatabaseName
+dcp = DatabaseName "dcp.sqlite"
+
 main :: IO ()
-main = runAppM "dev" "create-tables" () DebugS $ createTables (DatabaseName "dcp.sqlite")
+main =
+  runAppM Conf{db = dcp, env = "dev", ns = "create-tables", sev = DebugS, v = V3} () $
+    createTables dcp

@@ -31,6 +31,11 @@ import PersistenceStore.Analyzer (analyze)
 import PersistenceStore.ClubMetrics (ClubMetrics (ReportingMonth))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Class
+  ( TableName (..)
+  , intMeasurementTable
+  , textMeasurementTable
+  , withDatabase
+  )
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport
   ( ClubPerformanceRecord (..)
@@ -38,8 +43,8 @@ import Types.ClubPerformanceReport
   , clubNumber
   )
 
-saveReport :: DatabaseName -> ClubPerformanceReport -> AppM ()
-saveReport databaseName report = withDatabase databaseName $ flip saveReportWithConnection report
+saveReport :: ClubPerformanceReport -> AppM ()
+saveReport report = withDatabase $ flip saveReportWithConnection report
 
 saveReportWithConnection :: Connection -> ClubPerformanceReport -> AppM ()
 saveReportWithConnection conn ClubPerformanceReport{dayOfRecord, month, records} = traverse_ (saveRecord conn dayOfRecord month) records

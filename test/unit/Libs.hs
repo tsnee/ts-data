@@ -14,8 +14,8 @@ import Prelude
 
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import Serve (buildIntSeries)
-import Types.AppResponse (Codomain (..), Series (..))
+import Serve.ClubMeasurement (buildIntSeries)
+import Types.ClubMeasurementResponse (Codomain (..), Series (..))
 import Types.ClubNumber (ClubNumber (..))
 
 sortByFirst :: [Text] -> [a] -> ([Text], [a])

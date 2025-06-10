@@ -6,7 +6,7 @@ import Data.Proxy (Proxy (..))
 import Servant.OpenApi (toOpenApi)
 import Prelude
 
-import Serve (DataApi)
+import Serve.Class (Api)
 
 main :: IO ()
-main = writeFile "ts-data-openapi.json" $ BL8.unpack $ encodePretty $ toOpenApi (Proxy @DataApi)
+main = writeFile "ts-data-openapi.json" $ BL8.unpack $ encodePretty $ toOpenApi (Proxy @Api)

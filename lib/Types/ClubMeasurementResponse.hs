@@ -3,7 +3,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.AppResponse (AppResponse (..), Codomain (..), Series (..)) where
+module Types.ClubMeasurementResponse (ClubMeasurementResponse (..), Codomain (..), Series (..)) where
 
 import Autodocodec
   ( Autodocodec (..)
@@ -22,15 +22,15 @@ import Data.OpenApi (ToSchema (..))
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-newtype AppResponse = AppResponse {series :: [Series]}
+newtype ClubMeasurementResponse = ClubMeasurementResponse {series :: [Series]}
   deriving stock (Eq, Generic, Show)
-  deriving (FromJSON, ToJSON) via Autodocodec AppResponse
-instance HasCodec AppResponse where
+  deriving (FromJSON, ToJSON) via Autodocodec ClubMeasurementResponse
+instance HasCodec ClubMeasurementResponse where
   codec =
-    object "AppResponse" $
-      AppResponse
+    object "ClubMeasurementResponse" $
+      ClubMeasurementResponse
         <$> requiredField "series" "Array of time series" .= series
-instance ToSchema AppResponse where
+instance ToSchema ClubMeasurementResponse where
   declareNamedSchema = declareNamedSchemaViaCodec
 
 data Series = Series

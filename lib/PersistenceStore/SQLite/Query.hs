@@ -33,8 +33,7 @@ import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Class
-  ( DatabaseName (..)
-  , TableName (..)
+  ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable
   , withDatabase
@@ -42,16 +41,16 @@ import PersistenceStore.SQLite.Class
 import Types.ClubNumber (ClubNumber (..))
 
 loadIntMeasurements
-  :: DatabaseName -> ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
-loadIntMeasurements databaseName = loadMeasurements databaseName intMeasurementTable
+  :: ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
+loadIntMeasurements = loadMeasurements intMeasurementTable
 
 loadIntMeasurementsWithConnection
   :: Connection -> ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
 loadIntMeasurementsWithConnection conn = loadMeasurementsWithConnection conn intMeasurementTable
 
 loadTextMeasurements
-  :: DatabaseName -> ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
-loadTextMeasurements databaseName = loadMeasurements databaseName textMeasurementTable
+  :: ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
+loadTextMeasurements = loadMeasurements textMeasurementTable
 
 loadTextMeasurementsWithConnection
   :: Connection -> ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
@@ -60,14 +59,13 @@ loadTextMeasurementsWithConnection conn = loadMeasurementsWithConnection conn te
 loadMeasurements
   :: forall a
    . FromRow (Measurement a)
-  => DatabaseName
-  -> TableName
+  => TableName
   -> ClubNumber
   -> [ClubMetrics]
   -> Maybe Day
   -> Maybe Day
   -> AppM [Measurement a]
-loadMeasurements databaseName tableName clubNumber metrics startM endM = withDatabase databaseName $
+loadMeasurements tableName clubNumber metrics startM endM = withDatabase $
   \conn -> loadMeasurementsWithConnection conn tableName clubNumber metrics startM endM
 
 loadMeasurementsWithConnection

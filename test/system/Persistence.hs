@@ -6,23 +6,28 @@ module System.Persistence where
 import Data.Foldable (traverse_)
 import Data.Time (pattern YearMonthDay)
 import Database.SQLite.Simple (Connection)
+import Katip (Severity (..), Verbosity (..))
 import Test.Tasty
 import Test.Tasty.HUnit
 import UnliftIO (liftIO)
 import Prelude
 
-import MonadStack (AppM, testAppM)
+import MonadStack (AppM, runAppM)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Class (testDatabase, withDatabase)
 import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
 import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
 import Types.ClubNumber (ClubNumber (..))
+import Types.Conf (Conf (..))
 
 type AppAssertion = Connection -> AppM ()
 
+testConf :: Conf
+testConf = Conf{db = testDatabase, env = "test", ns = "persistenceStore", sev = WarningS, v = V3}
+
 appTestCase :: TestName -> AppAssertion -> TestTree
-appTestCase testName appAssertion = testCase testName $ testAppM () $ withDatabase testDatabase appAssertion
+appTestCase testName appAssertion = testCase testName $ runAppM testConf () $ withDatabase appAssertion
 
 tests :: TestTree
 tests =
