@@ -1,0 +1,13 @@
+{
+  "name": "Haskell Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "haskell.haskell"
+  ],
+  "postCreateCommand": "cabal update && cabal build"
+}
