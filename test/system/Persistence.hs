@@ -5,18 +5,17 @@ module System.Persistence where
 
 import Data.Foldable (traverse_)
 import Data.Time (pattern YearMonthDay)
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit ((@?=))
 import UnliftIO (liftIO)
 import Prelude
 
-import MonadStack (AppM)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
 import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
 import Types.ClubNumber (ClubNumber (..))
-import System.AppTestCase (AppAssertion, appTestCase)
+import System.AppTestCase (appTestCase)
 
 
 tests :: TestTree

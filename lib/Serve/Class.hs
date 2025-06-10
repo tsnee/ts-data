@@ -12,7 +12,7 @@ import Types.ClubMeasurementResponse (ClubMeasurementResponse (..))
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))
 import Types.ClubNumber (ClubNumber (..))
 
-{- ORMOLU DISABLE -}
+{- ORMOLU_DISABLE -}
 type Api =
   "measurements"
     :> "club"
@@ -21,4 +21,4 @@ type Api =
   :<|> "clubs"
     :> Capture "club_number" ClubNumber
     :> Get '[JSON] ClubMetadataResponse
-{- ORMOLU ENABLE -}
+{- ORMOLU_ENABLE -}

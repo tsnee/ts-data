@@ -14,4 +14,8 @@ import Types.DatabaseName (DatabaseName (..))
 newtype ColumnType = ColumnType Query
 
 main :: IO ()
-main = runAppM Conf{db = DatabaseName "dcp.sqlite", env = "dev", ns = "create-tables", sev = DebugS, v = V3} () createTables
+main =
+  runAppM
+    Conf{db = DatabaseName "dcp.sqlite", env = "dev", ns = "create-tables", sev = DebugS, v = V3}
+    ()
+    createTables
