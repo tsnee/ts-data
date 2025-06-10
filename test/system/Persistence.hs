@@ -5,29 +5,19 @@ module System.Persistence where
 
 import Data.Foldable (traverse_)
 import Data.Time (pattern YearMonthDay)
-import Database.SQLite.Simple (Connection)
-import Katip (Severity (..), Verbosity (..))
 import Test.Tasty
 import Test.Tasty.HUnit
 import UnliftIO (liftIO)
 import Prelude
 
-import MonadStack (AppM, runAppM)
+import MonadStack (AppM)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite.Class (testDatabase, withDatabase)
 import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
 import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
 import Types.ClubNumber (ClubNumber (..))
-import Types.Conf (Conf (..))
+import System.AppTestCase (AppAssertion, appTestCase)
 
-type AppAssertion = Connection -> AppM ()
-
-testConf :: Conf
-testConf = Conf{db = testDatabase, env = "test", ns = "persistenceStore", sev = WarningS, v = V3}
-
-appTestCase :: TestName -> AppAssertion -> TestTree
-appTestCase testName appAssertion = testCase testName $ runAppM testConf () $ withDatabase appAssertion
 
 tests :: TestTree
 tests =
@@ -35,7 +25,7 @@ tests =
     "PersistenceStore.SQLite"
     [ testGroup
         "save/load round trip"
-        [ appTestCase "Everything saved can be loaded when date range is unspecified" $ \conn ->
+        [ appTestCase "persistenceStore" "Everything saved can be loaded when date range is unspecified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -52,7 +42,7 @@ tests =
               traverse_ (saveIntMeasurement conn) testMeasurements
               actual <- loadIntMeasurementsWithConnection conn (ClubNumber 1) [toEnum 1] Nothing Nothing
               liftIO $ actual @?= expected
-        , appTestCase "Everything saved can be loaded when date range is specified" $ \conn ->
+        , appTestCase "persistenceStore" "Everything saved can be loaded when date range is specified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -75,7 +65,7 @@ tests =
                   (Just (YearMonthDay 2024 12 31))
                   (Just (YearMonthDay 2025 2 1))
               liftIO $ actual @?= expected
-        , appTestCase "Date ranges can be loaded" $ \conn ->
+        , appTestCase "persistenceStore" "Date ranges can be loaded" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -98,7 +88,7 @@ tests =
                   (Just (YearMonthDay 2025 1 4))
                   (Just (YearMonthDay 2025 1 6))
               liftIO $ actual @?= expected
-        , appTestCase "No start date specified" $ \conn ->
+        , appTestCase "persistenceStore" "No start date specified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -121,7 +111,7 @@ tests =
                   Nothing
                   (Just (YearMonthDay 2025 1 6))
               liftIO $ actual @?= expected
-        , appTestCase "No end date specified" $ \conn ->
+        , appTestCase "persistenceStore" "No end date specified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
