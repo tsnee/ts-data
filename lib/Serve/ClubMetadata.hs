@@ -6,7 +6,7 @@
 module Serve.ClubMetadata (processClubMetadataRequest) where
 
 import Data.Time (getCurrentTime, utctDay)
-import Data.Text qualified as T (show, uncons)
+import Data.Text qualified as T (show)
 import Katip (Severity(..), logFM, ls)
 import UnliftIO (liftIO)
 import Prelude hiding (div)
@@ -20,6 +20,7 @@ import Types.ClubMetadataResponse (ClubMetadataResponse (..))
 import Types.ClubNumber (ClubNumber (..))
 import Types.District (District (..))
 import Types.Division (Division (..))
+import Types.Division qualified as D (fromText)
 
 processClubMetadataRequest :: ClubNumber -> AppM (Maybe ClubMetadataResponse)
 processClubMetadataRequest clubNumber = do
@@ -47,8 +48,8 @@ processClubMetadataRequest clubNumber = do
   case (nameM, districtM, divisionM) of
     (Just clubName, Just dist, Just div) -> do
       let district = District dist
-      division <- case T.uncons div of
-        Just (d, _) -> pure $ Division d
+      division <- case D.fromText div of
+        Just d -> pure $ d
         Nothing -> do
           logFM ErrorS $ ls $ mconcat ["When looking up club ID ", T.show clubNumber, ", found division ", div, "."]
           pure DivisionNotAssigned

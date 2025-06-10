@@ -1,19 +1,18 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.Division (Division (..)) where
+module Types.Division (Division (..), fromText) where
 
 import Autodocodec (HasCodec, bimapCodec, codec, (<?>))
 import Data.Csv qualified as CSV (FromField, Parser, parseField)
 import Data.Text (Text)
-import Data.Text qualified as T (pack, unpack)
+import Data.Text qualified as T (pack, uncons)
 import Database.SQLite.Simple (SQLData (..))
 import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
 import GHC.Generics (Generic)
-import Safe (headMay)
 import TextShow (Builder, TextShow, fromString, showb)
-import Prelude
+import Prelude hiding (div)
 
 import PersistenceStore.FieldParsers (parseTextField)
 
@@ -24,11 +23,7 @@ instance CSV.FromField Division where
     | s == "0D" = pure DivisionNotAssigned
     | otherwise = Division <$> (CSV.parseField s :: CSV.Parser Char)
 instance FromField Division where
-  fromField = parseTextField parseDivision
-   where
-    parseDivision :: Text -> Maybe Division
-    parseDivision "0" = pure DivisionNotAssigned
-    parseDivision d = Division <$> (headMay . T.unpack) d
+  fromField = parseTextField fromText
 instance HasCodec Division where
   codec = bimapCodec dec enc codec <?> "Division letter (A-Z), or 'DivisionNotAssigned' if not assigned"
    where
@@ -47,3 +42,7 @@ instance TextShow Division where
 instance ToField Division where
   toField DivisionNotAssigned = SQLText "0"
   toField (Division d) = SQLText $ T.pack [d]
+
+fromText :: Text -> Maybe Division
+fromText "0" = pure DivisionNotAssigned
+fromText div = Division . fst <$> T.uncons div
