@@ -7,9 +7,9 @@ import Network.HTTP.Types (hContentType)
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors, simpleCorsResourcePolicy)
-import Servant (Proxy (..))
+import Servant (Proxy (..), throwError)
 import Servant.API ((:<|>) (..))
-import Servant.Server (Application, ServerT, hoistServer, serve)
+import Servant.Server (Application, ServerT, err404, hoistServer, serve)
 import UnliftIO (liftIO)
 
 import MonadStack (AppM, runAppM)
@@ -26,7 +26,7 @@ dcpDb :: DatabaseName
 dcpDb = DatabaseName "dcp.sqlite"
 
 server :: ServerT Api AppM
-server = processClubMeasurementRequest :<|> processClubMetadataRequest
+server = processClubMeasurementRequest :<|> processClubMetadataRequest >>= maybe (throwError err404) pure
 
 api :: Proxy Api
 api = Proxy

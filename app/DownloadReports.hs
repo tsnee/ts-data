@@ -13,11 +13,8 @@ import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
 import Types.District (District (..))
 
-database :: DatabaseName
-database = DatabaseName "dcp.sqlite"
-
 main :: IO ()
 main =
-  runAppM Conf{db = database, env = "dev", ns = "download-reports", sev = InfoS, v = V3} () $ do
-    createTables database
+  runAppM Conf{db = DatabaseName "dcp.sqlite", env = "dev", ns = "download-reports", sev = InfoS, v = V3} () $ do
+    createTables
     downloadClubPerformanceStarting (District 117) (YearMonthDay 2024 7 1)
