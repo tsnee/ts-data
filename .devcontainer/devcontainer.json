@@ -3,11 +3,16 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+        "version": "latest"
+    }
+  },
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash"
   },
   "extensions": [
     "haskell.haskell"
   ],
-  "postCreateCommand": "cabal update && cabal build"
+  "postCreateCommand": "cabal update && cabal install hlint && cabal install fourmolu"
 }
