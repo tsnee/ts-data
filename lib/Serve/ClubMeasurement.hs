@@ -5,6 +5,7 @@
 
 module Serve.ClubMeasurement (buildIntSeries, processClubMeasurementRequest) where
 
+import Control.Monad.Trans (lift)
 import Data.List.NonEmpty (NonEmpty (..), groupWith, toList)
 import Data.Text (Text)
 import Data.Text as T (intercalate, pack, show)
@@ -14,23 +15,23 @@ import TextShow (showt)
 import TextShow.Data.Time ()
 import Prelude
 
-import MonadStack (AppM)
 import PersistenceStore.ClubMetrics (ClubMetrics (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
+import Serve.Class (AppHandler)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..), Codomain (..), Series (..))
 
-processClubMeasurementRequest :: ClubMeasurementRequest -> AppM ClubMeasurementResponse
+processClubMeasurementRequest :: ClubMeasurementRequest -> AppHandler ClubMeasurementResponse
 processClubMeasurementRequest ClubMeasurementRequest{clubNumber, metrics, startDate, endDate} = do
   logFM DebugS $
     ls $
       "processRequest "
         <> T.intercalate ", " [showt clubNumber, showt metrics, showt startDate, showt endDate]
         <> " called."
-  intMeasurements <- loadIntMeasurements clubNumber metrics startDate endDate
+  intMeasurements <- lift $ loadIntMeasurements clubNumber metrics startDate endDate
   logFM DebugS $ ls $ "Found " <> showt intMeasurements <> " integer measurements."
-  textMeasurements <- loadTextMeasurements clubNumber metrics startDate endDate
+  textMeasurements <- lift $ loadTextMeasurements clubNumber metrics startDate endDate
   logFM DebugS $ ls $ "Found " <> showt textMeasurements <> " text measurements."
   let intSeries = buildIntSeries intMeasurements
       textSeries = buildTextSeries textMeasurements

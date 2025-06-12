@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PatternSynonyms #-}
 
 module System.ClubMetadata where
 
+import Control.Monad.Except (runExceptT)
 import Data.Time (addDays, getCurrentTime, utctDay)
 import Data.Text (Text)
 import Test.Tasty (TestTree, testGroup)
@@ -71,8 +71,8 @@ tests =
           , value = "New Club" :: Text
           , date = DbDate today
           }
-        result <- processClubMetadataRequest club
-        liftIO $ result @?= Just ClubMetadataResponse
+        result <- runExceptT $ processClubMetadataRequest club
+        liftIO $ result @?= pure ClubMetadataResponse
           { clubNumber = club
           , clubName = "New Club"
           , district = District 2

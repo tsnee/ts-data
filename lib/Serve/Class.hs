@@ -3,10 +3,13 @@
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Serve.Class (Api) where
+module Serve.Class (Api, AppHandler) where
 
+import Control.Monad.Except (ExceptT)
 import Servant.API (Capture, Get, JSON, Post, ReqBody, (:<|>), (:>))
+import Servant.Server (ServerError)
 
+import MonadStack (AppM)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..))
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))
@@ -22,3 +25,5 @@ type Api =
     :> Capture "club_number" ClubNumber
     :> Get '[JSON] ClubMetadataResponse
 {- ORMOLU_ENABLE -}
+
+type AppHandler = ExceptT ServerError AppM
