@@ -14,7 +14,7 @@ module PersistenceStore.SQLite.Class
   , withDatabase
   ) where
 
-import Control.Monad.Reader (ask)
+import Control.Monad.Reader (MonadIO, MonadReader, ask)
 import Database.SQLite.Simple
   ( Connection
   , Query (..)
@@ -22,10 +22,9 @@ import Database.SQLite.Simple
   , execute_
   , open
   )
-import UnliftIO (bracket, liftIO)
+import UnliftIO (MonadUnliftIO, bracket, liftIO)
 import Prelude
 
-import MonadStack (AppM)
 import Types.AppEnv (AppEnv (..))
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
@@ -35,10 +34,10 @@ newtype TableName = TableName Query
 testDatabase :: DatabaseName
 testDatabase = DatabaseName ":memory:"
 
-withDatabase :: forall a. (Connection -> AppM a) -> AppM a
+withDatabase :: forall a m. (MonadIO m, MonadReader AppEnv m, MonadUnliftIO m) => (Connection -> m a) -> m a
 withDatabase = bracket openDatabase (liftIO . close)
 
-openDatabase :: AppM Connection
+openDatabase :: (MonadReader AppEnv m, MonadIO m) => m Connection
 openDatabase = do
   AppEnv{conf = Conf{db = DatabaseName dbName}} <- ask
   conn <- liftIO $ open dbName
