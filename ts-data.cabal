@@ -101,7 +101,7 @@ library
         aeson ^>=2.2.3.0,
         autodocodec ^>=0.4.2.2,
         autodocodec-openapi3 ^>=0.2.1.4,
-        base ^>=4.21,
+        base >=4.17,
         basic-prelude ^>=0.7.0,
         bytestring ^>=0.12.0.2,
         cassava ^>=0.5.3.2,
@@ -148,7 +148,7 @@ executable create-tables
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21,
+        base >=4.17,
         katip ^>=0.8.8.2,
         mtl ^>=2.3.1,
         sqlite-simple >=0.4.19.0,
@@ -178,7 +178,7 @@ executable download-reports
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21,
+        base >=4.17,
         katip ^>=0.8.8.2,
         text-show ^>=3.11.1,
         time ^>=1.14,
@@ -205,7 +205,7 @@ executable gendocs
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21,
+        base >=4.17,
         autodocodec-openapi3 ^>=0.2.1.4,
         bytestring ^>=0.12.0.2,
         katip ^>=0.8.8.2,
@@ -234,7 +234,7 @@ executable server
 
     -- Other library packages from which modules are imported.
     build-depends:
-        base ^>=4.21,
+        base >=4.17,
         http-types ^>=0.12.4,
         katip ^>=0.8.8.2,
         mtl ^>=2.3.1,
@@ -282,7 +282,7 @@ test-suite ts-data-test
 
     -- Test dependencies.
     build-depends:
-        base ^>=4.21,
+        base >=4.17,
         katip ^>=0.8.8.2,
         mtl ^>=2.3.1,
         servant ^>=0.20.3,
