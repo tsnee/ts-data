@@ -18,5 +18,13 @@ type AppAssertion = Connection -> AppM ()
 appTestCase :: Namespace -> TestName -> AppAssertion -> TestTree
 appTestCase ns name assertion =
   testCase name $
-    runAppM Conf{db = testDatabase, env = "test", ns, sev = WarningS, v = V3} () $
+    runAppM
+      Conf
+        { databaseName = testDatabase
+        , environment = "test"
+        , namespace = ns
+        , severity = WarningS
+        , verbosity = V3
+        }
+      () $
       withDatabase assertion

@@ -16,6 +16,12 @@ newtype ColumnType = ColumnType Query
 main :: IO ()
 main =
   runAppM
-    Conf{db = DatabaseName "dcp.sqlite", env = "dev", ns = "create-tables", sev = DebugS, v = V3}
+    Conf
+      { databaseName = DatabaseName "dcp.sqlite"
+      , environment = "dev"
+      , namespace = "create-tables"
+      , severity = DebugS
+      , verbosity = V3
+      }
     ()
     createTables

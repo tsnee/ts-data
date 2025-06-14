@@ -40,7 +40,7 @@ withDatabase = bracket openDatabase (liftIO . close)
 
 openDatabase :: (MonadIO m, MonadReader AppEnv m) => m Connection
 openDatabase = do
-  AppEnv{conf = Conf{db = DatabaseName dbName}} <- ask
+  AppEnv{conf = Conf{databaseName = DatabaseName dbName}} <- ask
   conn <- liftIO $ open dbName
   liftIO $ execute_ conn "PRAGMA foreign_keys = ON"
   pure conn

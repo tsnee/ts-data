@@ -16,7 +16,13 @@ import Types.District (District (..))
 main :: IO ()
 main =
   runAppM
-    Conf{db = DatabaseName "dcp.sqlite", env = "dev", ns = "download-reports", sev = InfoS, v = V3}
+    Conf
+      { databaseName = DatabaseName "dcp.sqlite"
+      , environment = "dev"
+      , namespace = "download-reports"
+      , severity = InfoS
+      , verbosity = V3
+      }
     ()
     $ do
       createTables
