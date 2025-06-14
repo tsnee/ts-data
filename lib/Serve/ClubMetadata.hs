@@ -3,7 +3,7 @@
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Serve.ClubMetadata (processClubMetadataRequest) where
+module Serve.ClubMetadata (processClubMetadataRequest, parseNameDivision) where
 
 import Control.Monad.Trans (lift)
 import Data.Text (Text)
@@ -49,34 +49,37 @@ loadNameAndDivision :: ClubNumber -> Day -> AppHandler (Maybe Text, Maybe Text)
 loadNameAndDivision clubNumber today = do
   namesAndDivisions <-
     lift $ loadTextMeasurements clubNumber [M.ClubName, M.Division] (Just today) Nothing
-  case namesAndDivisions of
-    [] -> pure (Nothing, Nothing)
-    [Measurement{metricId = m0, value = v0}, Measurement{metricId = m1, value = v1}] ->
-      let clubNameId = fromEnum M.ClubName
-          divisionId = fromEnum M.Division
-       in if m0 == clubNameId && m1 == divisionId
-            then pure (Just v0, Just v1)
-            else
-              if m0 == divisionId && m1 == clubNameId
-                then pure (Just v1, Just v0)
-                else do
-                  logFM ErrorS $
-                    ls $
-                      mconcat
-                        [ "Expected club name and division, but found [metricId "
-                        , T.show (toEnum m0 :: ClubMetric)
-                        , ", value "
-                        , T.show v0
-                        , " : metricId "
-                        , T.show (toEnum m1 :: ClubMetric)
-                        , ", value "
-                        , T.show v1
-                        , "]"
-                        ]
-                  throwError err500
-    unexpected -> do
-      logFM ErrorS $ ls $ "Expected list length of 0 or 2, but found " <> T.show unexpected
+  case parseNameDivision namesAndDivisions of
+    Left err -> do
+      logFM ErrorS $ ls err
       throwError err500
+    Right result -> pure result
+
+-- | Parse the combination of club name and division returned from the database.
+parseNameDivision :: [Measurement Text] -> Either Text (Maybe Text, Maybe Text)
+parseNameDivision namesAndDivisions = case namesAndDivisions of
+  [] -> Right (Nothing, Nothing)
+  [Measurement{metricId = m0, value = v0}, Measurement{metricId = m1, value = v1}] ->
+    let clubNameId = fromEnum M.ClubName
+        divisionId = fromEnum M.Division
+     in if m0 == clubNameId && m1 == divisionId
+          then Right (Just v0, Just v1)
+          else
+            if m0 == divisionId && m1 == clubNameId
+              then Right (Just v1, Just v0)
+              else
+                Left . mconcat $
+                  [ "Expected club name and division, but found [metricId "
+                  , T.show (toEnum m0 :: ClubMetric)
+                  , ", value "
+                  , T.show v0
+                  , " : metricId "
+                  , T.show (toEnum m1 :: ClubMetric)
+                  , ", value "
+                  , T.show v1
+                  , "]"
+                  ]
+  unexpected -> Left $ "Expected list length of 0 or 2, but found " <> T.show unexpected
 
 clubMetadataFound :: ClubNumber -> Text -> Int -> Text -> AppHandler ClubMetadataResponse
 clubMetadataFound clubNumber clubName dist divString = do
