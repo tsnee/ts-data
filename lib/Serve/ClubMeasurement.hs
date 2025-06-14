@@ -11,7 +11,6 @@ import Data.Text (Text)
 import Data.Text as T (intercalate, pack, show)
 import Data.Time (defaultTimeLocale, formatTime)
 import Katip (Severity (..), logFM, ls)
-import PersistenceStore.ClubMetric (ClubMetric (..))
 import TextShow (showt)
 import TextShow.Data.Time ()
 import Prelude
@@ -21,6 +20,7 @@ import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Api (AppHandler)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..), Codomain (..), Series (..))
+import Types.ClubMetric (ClubMetric (..))
 
 processClubMeasurementRequest :: ClubMeasurementRequest -> AppHandler ClubMeasurementResponse
 processClubMeasurementRequest ClubMeasurementRequest{clubNumber, metrics, startDate, endDate} = do

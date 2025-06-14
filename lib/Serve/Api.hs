@@ -13,6 +13,7 @@ import AppM (AppM)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..))
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))
+import Types.ClubMetric (ClubMetric)
 import Types.ClubNumber (ClubNumber (..))
 
 {- ORMOLU_DISABLE -}
@@ -24,6 +25,8 @@ type Api =
   :<|> "clubs"
     :> Capture "club_number" ClubNumber
     :> Get '[JSON] ClubMetadataResponse
+  :<|> "clubmetrics"
+    :> Get '[JSON] [ClubMetric]
 {- ORMOLU_ENABLE -}
 
 type AppHandler = ExceptT ServerError AppM

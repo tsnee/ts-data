@@ -13,9 +13,9 @@ import TextShow (FromStringShow (..), TextShow, showt)
 import Prelude
 
 import PersistenceStore.Analyzer (Analyzer (..))
-import PersistenceStore.ClubMetric qualified as M
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import Types.Area (Area (..))
+import Types.ClubMetric qualified as M
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubStatus (ClubStatus (..))
 import Types.DistinguishedStatus (DistinguishedStatus)

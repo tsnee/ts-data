@@ -1,10 +1,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
 
-module PersistenceStore.ClubMetric (ClubMetric (..)) where
+module Types.ClubMetric (ClubMetric (..)) where
 
 import Autodocodec (Autodocodec (..), HasCodec, codec, shownBoundedEnumCodec)
+import Autodocodec.OpenAPI (declareNamedSchemaViaCodec)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.OpenApi (ToSchema (..))
 import GHC.Generics (Generic)
 import TextShow (FromStringShow (..), TextShow)
 import Prelude
@@ -35,3 +37,5 @@ data ClubMetric
   deriving TextShow via FromStringShow ClubMetric
 instance HasCodec ClubMetric where
   codec = shownBoundedEnumCodec
+instance ToSchema ClubMetric where
+  declareNamedSchema = declareNamedSchemaViaCodec
