@@ -13,6 +13,7 @@ module PersistenceStore.SQLite.Insert
   , saveTextMeasurement
   ) where
 
+import Control.Monad.Reader (MonadReader, ask)
 import Data.Foldable (traverse_)
 import Data.Text (Text)
 import Data.Time (Day)
@@ -20,16 +21,15 @@ import Data.Time.Calendar.Month (Month (..))
 import Database.SQLite.Simple
   ( Connection
   , NamedParam (..)
+  , close
   , executeNamed
   , execute_
   , open
-  , close
   )
 import Database.SQLite.Simple.ToField (ToField)
 import UnliftIO (MonadIO, liftIO)
 import Prelude
 
-import Control.Monad.Reader (MonadReader, ask)
 import PersistenceStore.Analyzer (analyze)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Common
@@ -37,9 +37,7 @@ import PersistenceStore.SQLite.Common
   , intMeasurementTable
   , textMeasurementTable
   )
-import Types.Conf (Conf (..))
-import Types.DatabaseName (DatabaseName (..))
-import Types.AppEnv (AppEnv)
+import Types.AppEnv (AppEnv (..))
 import Types.ClubMetric (ClubMetric (ReportingMonth))
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport
@@ -47,6 +45,8 @@ import Types.ClubPerformanceReport
   , ClubPerformanceReport (..)
   , clubNumber
   )
+import Types.Conf (Conf (..))
+import Types.DatabaseName (DatabaseName (..))
 
 saveReport
   :: (MonadIO m, MonadReader AppEnv m)
