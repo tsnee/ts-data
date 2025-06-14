@@ -20,9 +20,20 @@ import Serve.ClubMetadata (processClubMetadataRequest)
 import Serve.ClubMetrics (processClubMetricsRequest)
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
+import Options (parseWithConf)
+import Options.Applicative
 
-port :: Int
-port = 8080
+data ServerOptions = ServerOptions {port :: Int}
+
+serverOptions :: Parser ServerOptions
+serverOptions =
+  ServerOptions
+    <$> option auto
+          ( long "port"
+         <> metavar "INT"
+         <> help "Server port"
+         <> value 8080
+         <> showDefault )
 
 dcpDb :: DatabaseName
 dcpDb = DatabaseName "dcp.sqlite"
@@ -55,12 +66,14 @@ middleware = cors $ const $ Just corsResourcePolicy
 
 main :: IO ()
 main = do
-  let conf =
-        Conf
-          { databaseName = dcpDb
-          , environment = "dev"
-          , namespace = "server"
-          , severity = DebugS
-          , verbosity = V3
-          }
+  (conf, ServerOptions{port}) <-
+    parseWithConf
+      Conf
+        { databaseName = dcpDb
+        , environment = "dev"
+        , namespace = "server"
+        , severity = DebugS
+        , verbosity = V3
+        }
+      serverOptions
   run port $ middleware $ mkApp conf ()

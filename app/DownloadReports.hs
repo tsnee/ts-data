@@ -3,7 +3,13 @@
 
 module Main where
 
-import Data.Time (pattern YearMonthDay)
+import Data.Time
+  ( Day
+  , defaultTimeLocale
+  , fromGregorian
+  , parseTimeM
+  , pattern YearMonthDay
+  )
 import Katip (Severity (..), Verbosity (..))
 
 import AppM (runAppM)
@@ -12,18 +18,46 @@ import PersistenceStore.SQLite.Tables (createTables)
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
 import Types.District (District (..))
+import Options (parseWithConf)
+import Options.Applicative
+import Text.Read (readMaybe)
+
+data DownloadOptions = DownloadOptions
+  { district :: District
+  , startDay :: Day
+  }
+
+downloadOptions :: Parser DownloadOptions
+downloadOptions =
+  DownloadOptions
+    <$> option readDistrict
+          ( long "district"
+         <> metavar "INT"
+         <> help "District number"
+         <> value (District 117)
+         <> showDefaultWith (\(District d) -> show d) )
+    <*> option readDay
+          ( long "start-day"
+         <> metavar "YYYY-MM-DD"
+         <> help "Date to start downloading"
+         <> value (fromGregorian 2024 7 1)
+         <> showDefault )
+  where
+    readDistrict = maybeReader (fmap District . readMaybe)
+    readDay = maybeReader (parseTimeM False defaultTimeLocale "%F")
 
 main :: IO ()
-main =
-  runAppM
-    Conf
-      { databaseName = DatabaseName "dcp.sqlite"
-      , environment = "dev"
-      , namespace = "download-reports"
-      , severity = InfoS
-      , verbosity = V3
-      }
-    ()
-    $ do
-      createTables
-      downloadClubPerformanceStarting (District 117) (YearMonthDay 2024 7 1)
+main = do
+  (conf, DownloadOptions{district, startDay}) <-
+    parseWithConf
+      Conf
+        { databaseName = DatabaseName "dcp.sqlite"
+        , environment = "dev"
+        , namespace = "download-reports"
+        , severity = InfoS
+        , verbosity = V3
+        }
+      downloadOptions
+  runAppM conf () $ do
+    createTables
+    downloadClubPerformanceStarting district startDay
