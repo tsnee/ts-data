@@ -25,7 +25,7 @@ jobs:
         env:
           cache-name: cache-cabal
         with:
-          path: $HOME/.cabal/store
+          path: $HOME/.local/state/cabal/store
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('ts-data.cabal') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
@@ -44,13 +44,9 @@ jobs:
         run: |
           cabal update
           cabal build --only-dependencies --enable-tests --enable-benchmarks
-      - name: Debug output
-        run: |
-          cabal user-config diff
-          find / -name libHSsrvnt-0.20.3.0-\*.a -ls
-          ls -la $HOME/.cabal
-          ls -la $HOME/.cabal/store
+
       - name: Build
         run: cabal build --enable-tests --enable-benchmarks --disable-documentation all
+
       - name: Run tests
         run: cabal test all
