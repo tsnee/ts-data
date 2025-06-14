@@ -46,7 +46,7 @@ jobs:
           cabal build --only-dependencies --enable-tests --enable-benchmarks
 
       - name: Debug output
-        run: find $HOME .. -name libHSsrvnt-0.20.3.0-\*.a -ls
+        run: find .. ~ \( -name .cabal -o -name store -o -name "ghc-9.12.2*" \) -ls
 
       - name: Build
         run: cabal build --enable-tests --enable-benchmarks --disable-documentation all
