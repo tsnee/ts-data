@@ -34,10 +34,11 @@ newtype TableName = TableName Query
 testDatabase :: DatabaseName
 testDatabase = DatabaseName ":memory:"
 
-withDatabase :: forall a m. (MonadIO m, MonadReader AppEnv m, MonadUnliftIO m) => (Connection -> m a) -> m a
+withDatabase
+  :: forall a m. (MonadIO m, MonadReader AppEnv m, MonadUnliftIO m) => (Connection -> m a) -> m a
 withDatabase = bracket openDatabase (liftIO . close)
 
-openDatabase :: (MonadReader AppEnv m, MonadIO m) => m Connection
+openDatabase :: (MonadIO m, MonadReader AppEnv m) => m Connection
 openDatabase = do
   AppEnv{conf = Conf{db = DatabaseName dbName}} <- ask
   conn <- liftIO $ open dbName

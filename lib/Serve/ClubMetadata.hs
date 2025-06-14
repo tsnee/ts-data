@@ -54,22 +54,26 @@ loadNameAndDivision clubNumber today = do
     [Measurement{metricId = m0, value = v0}, Measurement{metricId = m1, value = v1}] ->
       let clubNameId = fromEnum M.ClubName
           divisionId = fromEnum M.Division
-      in if m0 == clubNameId && m1 == divisionId
-        then pure (Just v0, Just v1)
-        else
-          if m0 == divisionId && m1 == clubNameId
-            then pure (Just v1, Just v0)
-            else do
-              logFM ErrorS $
-                ls $
-                  mconcat
-                    [ "Expected club name and division, but found [metricId " , T.show (toEnum m0 :: ClubMetrics)
-                    , ", value " , T.show v0
-                    , " : metricId " , T.show (toEnum m1 :: ClubMetrics)
-                    , ", value " , T.show v1
-                    , "]"
-                    ]
-              throwError err500
+       in if m0 == clubNameId && m1 == divisionId
+            then pure (Just v0, Just v1)
+            else
+              if m0 == divisionId && m1 == clubNameId
+                then pure (Just v1, Just v0)
+                else do
+                  logFM ErrorS $
+                    ls $
+                      mconcat
+                        [ "Expected club name and division, but found [metricId "
+                        , T.show (toEnum m0 :: ClubMetrics)
+                        , ", value "
+                        , T.show v0
+                        , " : metricId "
+                        , T.show (toEnum m1 :: ClubMetrics)
+                        , ", value "
+                        , T.show v1
+                        , "]"
+                        ]
+                  throwError err500
     unexpected -> do
       logFM ErrorS $ ls $ "Expected list length of 0 or 2, but found " <> T.show unexpected
       throwError err500
