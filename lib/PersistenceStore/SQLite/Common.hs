@@ -22,7 +22,7 @@ import Database.SQLite.Simple
   , execute_
   , open
   )
-import UnliftIO (MonadUnliftIO, bracket, liftIO)
+import UnliftIO (liftIO)
 import Prelude
 
 import Types.AppEnv (AppEnv (..))
@@ -35,8 +35,15 @@ testDatabase :: DatabaseName
 testDatabase = DatabaseName ":memory:"
 
 withDatabase
-  :: forall a m. (MonadIO m, MonadReader AppEnv m, MonadUnliftIO m) => (Connection -> m a) -> m a
-withDatabase = bracket openDatabase (liftIO . close)
+  :: forall a m.
+     (MonadIO m, MonadReader AppEnv m)
+  => (Connection -> m a)
+  -> m a
+withDatabase action = do
+  conn <- openDatabase
+  result <- action conn
+  liftIO $ close conn
+  pure result
 
 openDatabase :: (MonadIO m, MonadReader AppEnv m) => m Connection
 openDatabase = do
