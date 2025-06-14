@@ -11,12 +11,12 @@ import Data.OpenApi (ToSchema (..))
 import Data.Time (Day)
 import GHC.Generics (Generic)
 
-import PersistenceStore.ClubMetrics (ClubMetrics)
+import PersistenceStore.ClubMetrics (ClubMetric)
 import Types.ClubNumber (ClubNumber)
 
 data ClubMeasurementRequest = ClubMeasurementRequest
   { clubNumber :: !ClubNumber
-  , metrics :: ![ClubMetrics]
+  , metrics :: ![ClubMetric]
   , startDate :: !(Maybe Day)
   , endDate :: !(Maybe Day)
   }

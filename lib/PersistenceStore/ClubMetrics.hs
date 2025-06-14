@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingVia #-}
 
-module PersistenceStore.ClubMetrics (ClubMetrics (..)) where
+module PersistenceStore.ClubMetrics (ClubMetric (..)) where
 
 import Autodocodec (HasCodec, codec, shownBoundedEnumCodec)
 import GHC.Generics (Generic)
 import TextShow (FromStringShow (..), TextShow)
 import Prelude
 
-data ClubMetrics
+data ClubMetric
   = ActiveMembers
   | Area
   | ClubName
@@ -30,6 +30,6 @@ data ClubMetrics
   | OfficersTrainedRoundTwo
   | ReportingMonth
   deriving stock (Bounded, Enum, Eq, Generic, Read, Show)
-  deriving TextShow via FromStringShow ClubMetrics
-instance HasCodec ClubMetrics where
+  deriving TextShow via FromStringShow ClubMetric
+instance HasCodec ClubMetric where
   codec = shownBoundedEnumCodec

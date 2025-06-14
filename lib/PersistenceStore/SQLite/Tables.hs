@@ -17,7 +17,7 @@ import UnliftIO (liftIO)
 import Prelude
 
 import MonadStack (AppM)
-import PersistenceStore.ClubMetrics (ClubMetrics)
+import PersistenceStore.ClubMetrics (ClubMetric)
 import PersistenceStore.SQLite.Class
   ( TableName (..)
   , intMeasurementTable
@@ -52,7 +52,7 @@ createMetricNameTable conn = do
       \, name TEXT    NOT NULL \
       \);"
   logFM InfoS "(Conditionally) created table metric_names."
-  let insert :: ClubMetrics -> AppM ()
+  let insert :: ClubMetric -> AppM ()
       insert m =
         liftIO $
           executeNamed

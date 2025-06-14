@@ -15,8 +15,8 @@ import Servant.Server (err404, err500)
 import UnliftIO (liftIO)
 import Prelude hiding (div)
 
-import PersistenceStore.ClubMetrics (ClubMetrics)
-import PersistenceStore.ClubMetrics qualified as M (ClubMetrics (..))
+import PersistenceStore.ClubMetrics (ClubMetric)
+import PersistenceStore.ClubMetrics qualified as M (ClubMetric (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Class (AppHandler)
@@ -64,11 +64,11 @@ loadNameAndDivision clubNumber today = do
                     ls $
                       mconcat
                         [ "Expected club name and division, but found [metricId "
-                        , T.show (toEnum m0 :: ClubMetrics)
+                        , T.show (toEnum m0 :: ClubMetric)
                         , ", value "
                         , T.show v0
                         , " : metricId "
-                        , T.show (toEnum m1 :: ClubMetrics)
+                        , T.show (toEnum m1 :: ClubMetric)
                         , ", value "
                         , T.show v1
                         , "]"
