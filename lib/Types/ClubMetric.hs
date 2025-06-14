@@ -4,6 +4,7 @@
 module Types.ClubMetric (ClubMetric (..)) where
 
 import Autodocodec (Autodocodec (..), HasCodec, codec, shownBoundedEnumCodec)
+import Autodocodec.OpenAPI (declareNamedSchemaViaCodec)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.OpenApi (ToSchema (..))
 import GHC.Generics (Generic)
