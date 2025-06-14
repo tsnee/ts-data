@@ -18,7 +18,7 @@ import Prelude
 
 import AppM (AppM)
 import PersistenceStore.ClubMetric (ClubMetric)
-import PersistenceStore.SQLite.Class
+import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable

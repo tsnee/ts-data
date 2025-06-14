@@ -2,11 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 {- |
-Module      : PersistenceStore.SQLite.Class
+Module      : PersistenceStore.SQLite.Common
 Description : Persistence code specific to the SQLite implementation.
 Maintainer  : tomsnee@gmail.com
 -}
-module PersistenceStore.SQLite.Class
+module PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , testDatabase

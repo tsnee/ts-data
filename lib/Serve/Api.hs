@@ -3,7 +3,7 @@
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Serve.Class (Api, AppHandler) where
+module Serve.Api (Api, AppHandler) where
 
 import Control.Monad.Except (ExceptT)
 import Servant.API (Capture, Get, JSON, Post, ReqBody, (:<|>), (:>))

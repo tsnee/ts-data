@@ -14,7 +14,7 @@ import Servant.API ((:<|>) (..))
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 
 import AppM (runAppM)
-import Serve.Class (Api, AppHandler)
+import Serve.Api (Api, AppHandler)
 import Serve.ClubMeasurement (processClubMeasurementRequest)
 import Serve.ClubMetadata (processClubMetadataRequest)
 import Types.Conf (Conf (..))

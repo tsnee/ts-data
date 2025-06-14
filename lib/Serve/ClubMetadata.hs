@@ -19,7 +19,7 @@ import Prelude
 
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
-import Serve.Class (AppHandler)
+import Serve.Api (AppHandler)
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))
 import Types.ClubNumber (ClubNumber (..))
 import Types.District (District (..))

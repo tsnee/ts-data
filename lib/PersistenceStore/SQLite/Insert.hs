@@ -30,7 +30,7 @@ import Prelude
 import AppM (AppM)
 import PersistenceStore.Analyzer (analyze)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
-import PersistenceStore.SQLite.Class
+import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable

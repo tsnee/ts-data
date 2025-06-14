@@ -9,7 +9,7 @@ import Test.Tasty.HUnit (testCase)
 import Prelude
 
 import AppM (AppM, runAppM)
-import PersistenceStore.SQLite.Class (testDatabase, withDatabase)
+import PersistenceStore.SQLite.Common (testDatabase, withDatabase)
 import Types.Conf (Conf (..))
 
 -- | Assertion for application tests that need database access.

@@ -18,7 +18,7 @@ import Prelude
 
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
-import Serve.Class (AppHandler)
+import Serve.Api (AppHandler)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..), Codomain (..), Series (..))
 
