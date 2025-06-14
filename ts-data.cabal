@@ -60,10 +60,10 @@ library
 
     -- Modules exported by the library.
     exposed-modules:
+        AppM,
         Download,
-        MonadStack,
         PersistenceStore.Analyzer,
-        PersistenceStore.ClubMetrics,
+        PersistenceStore.ClubMetric,
         PersistenceStore.FieldParsers,
         PersistenceStore.Measurement,
         PersistenceStore.SQLite.Class,
@@ -80,7 +80,7 @@ library
         Types.ClubMetadataResponse,
         Types.ClubNumber,
         Types.ClubPerformanceReport,
-        Types.ClubPerformanceReportSpec,
+        Types.ClubPerformanceReportDescriptor,
         Types.ClubStatus,
         Types.Conf,
         Types.DatabaseName,

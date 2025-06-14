@@ -23,12 +23,12 @@ import Database.SQLite.Simple
   , executeNamed
   )
 import Database.SQLite.Simple.ToField (ToField)
+import PersistenceStore.ClubMetric (ClubMetric (ReportingMonth))
 import UnliftIO (liftIO)
 import Prelude
 
-import MonadStack (AppM)
+import AppM (AppM)
 import PersistenceStore.Analyzer (analyze)
-import PersistenceStore.ClubMetrics (ClubMetric (ReportingMonth))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Class
   ( TableName (..)

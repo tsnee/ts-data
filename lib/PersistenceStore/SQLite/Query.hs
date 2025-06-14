@@ -29,8 +29,8 @@ import UnliftIO (liftIO)
 import Unsafe.Coerce (unsafeCoerce)
 import Prelude
 
-import MonadStack (AppM)
-import PersistenceStore.ClubMetrics (ClubMetric (..))
+import AppM (AppM)
+import PersistenceStore.ClubMetric (ClubMetric (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Class
   ( TableName (..)
@@ -79,40 +79,40 @@ loadMeasurementsWithConnection
   -> Maybe Day
   -> AppM [Measurement a]
 loadMeasurementsWithConnection conn tableName clubNumber metrics startM endM = do
-  let (query, metricParms) = buildLoadMeasurementsQuery tableName metrics startM endM
+  let (query, metricParams) = buildLoadMeasurementsQuery tableName metrics startM endM
   logFM DebugS $ ls $ fromQuery query
   liftIO $
     queryNamed conn query $
-      [clubIdParm := clubNumber, startDateParm := startM, endDateParm := endM] <> metricParms
+      [clubIdParam := clubNumber, startDateParam := startM, endDateParam := endM] <> metricParams
 
-clubIdParm :: Text
-clubIdParm = ":clubId"
-clubIdParmQ :: Query
-clubIdParmQ = ":clubId"
-startDateParm :: Text
-startDateParm = ":start"
-startDateParmQ :: Query
-startDateParmQ = ":start"
-endDateParm :: Text
-endDateParm = ":end"
-endDateParmQ :: Query
-endDateParmQ = ":end"
+clubIdParam :: Text
+clubIdParam = ":clubId"
+clubIdParamQ :: Query
+clubIdParamQ = ":clubId"
+startDateParam :: Text
+startDateParam = ":start"
+startDateParamQ :: Query
+startDateParamQ = ":start"
+endDateParam :: Text
+endDateParam = ":end"
+endDateParamQ :: Query
+endDateParamQ = ":end"
 
-metricIdParm :: ClubMetric -> Text
-metricIdParm metric = T.concat [":", T.toCaseFold $ T.show metric]
-metricIdParmQ :: ClubMetric -> Query
-metricIdParmQ = unsafeCoerce . metricIdParm
+metricIdParam :: ClubMetric -> Text
+metricIdParam metric = T.concat [":", T.toCaseFold $ T.show metric]
+metricIdParamQ :: ClubMetric -> Query
+metricIdParamQ = unsafeCoerce . metricIdParam
 
 buildLoadMeasurementsQuery
   :: TableName -> [ClubMetric] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
-buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, parms)
+buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, params)
  where
-  queriesAndParms = do
+  queriesAndParams = do
     metric <- clubMetrics
     let subQuery = buildLoadMeasurementsSubQuery tableName metric startM endM
-        parm = metricIdParm metric := fromEnum metric
-    pure (subQuery, parm)
-  (subQueries, parms) = unzip queriesAndParms
+        param = metricIdParam metric := fromEnum metric
+    pure (subQuery, param)
+  (subQueries, params) = unzip queriesAndParams
   query = mconcat (intersperse " UNION ALL " subQueries) <> " ORDER BY metric_id"
 
 buildLoadMeasurementsSubQuery
@@ -122,9 +122,9 @@ buildLoadMeasurementsSubQuery tableName@(TableName tableNameQ) metric startM end
     [ "SELECT club_id, metric_id, value, date FROM "
     , tableNameQ
     , " WHERE club_id = "
-    , clubIdParmQ
+    , clubIdParamQ
     , " AND metric_id = "
-    , metricIdParmQ metric
+    , metricIdParamQ metric
     , buildDateSubQuery tableName metric startM endM
     ]
 
@@ -145,27 +145,27 @@ buildDateSubQuery (TableName tableNameQ) metric startM endM =
         [ " AND date BETWEEN COALESCE((SELECT MAX(date) FROM "
         , tableNameQ
         , " WHERE club_id = "
-        , clubIdParmQ
+        , clubIdParamQ
         , " AND metric_id = "
-        , metricIdParmQ metric
+        , metricIdParamQ metric
         , " AND date <= "
-        , startDateParmQ
+        , startDateParamQ
         , "), :start) AND "
-        , endDateParmQ
+        , endDateParamQ
         ]
     (Just _, Nothing) ->
       mconcat
         [ " AND date >= COALESCE((SELECT MAX(date) FROM "
         , tableNameQ
         , " WHERE club_id = "
-        , clubIdParmQ
+        , clubIdParamQ
         , " AND metric_id = "
-        , metricIdParmQ metric
+        , metricIdParamQ metric
         , " AND date <= "
-        , startDateParmQ
+        , startDateParamQ
         , "), :start) AND ("
-        , endDateParmQ
+        , endDateParamQ
         , " IS NULL)"
         ]
-    (Nothing, Just _) -> mconcat [" AND ", startDateParmQ, " IS NULL AND date <= ", endDateParmQ]
-    (Nothing, Nothing) -> mconcat [" AND ", startDateParmQ, " IS NULL AND ", endDateParmQ, " IS NULL"]
+    (Nothing, Just _) -> mconcat [" AND ", startDateParamQ, " IS NULL AND date <= ", endDateParamQ]
+    (Nothing, Nothing) -> mconcat [" AND ", startDateParamQ, " IS NULL AND ", endDateParamQ, " IS NULL"]

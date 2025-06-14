@@ -12,7 +12,7 @@ import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
 import GHC.Generics (Generic)
 import TextShow (Builder, TextShow, fromString, showb)
-import Prelude hiding (div)
+import Prelude
 
 import PersistenceStore.FieldParsers (parseTextField)
 
@@ -45,4 +45,4 @@ instance ToField Division where
 
 fromText :: Text -> Maybe Division
 fromText "0" = pure DivisionNotAssigned
-fromText div = Division . fst <$> T.uncons div
+fromText division = Division . fst <$> T.uncons division

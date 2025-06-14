@@ -10,13 +10,13 @@ import Data.Text (Text)
 import Data.Text qualified as T (show)
 import Data.Time (Day, getCurrentTime, utctDay)
 import Katip (Severity (..), logFM, ls)
+import PersistenceStore.ClubMetric (ClubMetric)
+import PersistenceStore.ClubMetric qualified as M (ClubMetric (..))
 import Servant (throwError)
 import Servant.Server (err404, err500)
 import UnliftIO (liftIO)
-import Prelude hiding (div)
+import Prelude
 
-import PersistenceStore.ClubMetrics (ClubMetric)
-import PersistenceStore.ClubMetrics qualified as M (ClubMetric (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Class (AppHandler)
@@ -32,7 +32,7 @@ processClubMetadataRequest clubNumber = do
   (nameM, divisionM) <- loadNameAndDivision clubNumber today
   case (nameM, districtM, divisionM) of
     (Nothing, Nothing, Nothing) -> throwError err404
-    (Just clubName, Just dist, Just div) -> clubMetadataFound clubNumber clubName dist div
+    (Just clubName, Just dist, Just division) -> clubMetadataFound clubNumber clubName dist division
     _ -> clubMetadataNotFound clubNumber nameM districtM divisionM
 
 loadDistrict :: ClubNumber -> Day -> AppHandler (Maybe Int)
@@ -79,13 +79,13 @@ loadNameAndDivision clubNumber today = do
       throwError err500
 
 clubMetadataFound :: ClubNumber -> Text -> Int -> Text -> AppHandler ClubMetadataResponse
-clubMetadataFound clubNumber clubName dist div = do
-  division <- case D.fromText div of
+clubMetadataFound clubNumber clubName dist divString = do
+  division <- case D.fromText divString of
     Just d -> pure d
     Nothing -> do
       logFM ErrorS $
         ls $
-          mconcat ["When looking up club ID ", T.show clubNumber, ", found division ", div, "."]
+          mconcat ["When looking up club ID ", T.show clubNumber, ", found division ", divString, "."]
       throwError err500
   pure $ ClubMetadataResponse{clubNumber, clubName, district = District dist, division}
 

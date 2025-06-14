@@ -13,7 +13,7 @@ import TextShow (FromStringShow (..), TextShow, showt)
 import Prelude
 
 import PersistenceStore.Analyzer (Analyzer (..))
-import PersistenceStore.ClubMetrics qualified as M
+import PersistenceStore.ClubMetric qualified as M
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import Types.Area (Area (..))
 import Types.ClubNumber (ClubNumber (..))

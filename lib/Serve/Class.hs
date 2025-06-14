@@ -9,7 +9,7 @@ import Control.Monad.Except (ExceptT)
 import Servant.API (Capture, Get, JSON, Post, ReqBody, (:<|>), (:>))
 import Servant.Server (ServerError)
 
-import MonadStack (AppM)
+import AppM (AppM)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..))
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))

@@ -16,8 +16,8 @@ import TextShow (showt)
 import UnliftIO (liftIO)
 import Prelude
 
-import MonadStack (AppM)
-import PersistenceStore.ClubMetrics (ClubMetric)
+import AppM (AppM)
+import PersistenceStore.ClubMetric (ClubMetric)
 import PersistenceStore.SQLite.Class
   ( TableName (..)
   , intMeasurementTable

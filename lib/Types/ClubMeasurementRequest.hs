@@ -11,7 +11,7 @@ import Data.OpenApi (ToSchema (..))
 import Data.Time (Day)
 import GHC.Generics (Generic)
 
-import PersistenceStore.ClubMetrics (ClubMetric)
+import PersistenceStore.ClubMetric (ClubMetric)
 import Types.ClubNumber (ClubNumber)
 
 data ClubMeasurementRequest = ClubMeasurementRequest

@@ -6,7 +6,7 @@ import Database.SQLite.Simple (Query)
 import Katip (Severity (..), Verbosity (..))
 import Prelude
 
-import MonadStack (runAppM)
+import AppM (runAppM)
 import PersistenceStore.SQLite.Tables (createTables)
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))

@@ -13,7 +13,7 @@ import Servant (Proxy (..))
 import Servant.API ((:<|>) (..))
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
 
-import MonadStack (runAppM)
+import AppM (runAppM)
 import Serve.Class (Api, AppHandler)
 import Serve.ClubMeasurement (processClubMeasurementRequest)
 import Serve.ClubMetadata (processClubMetadataRequest)
@@ -32,11 +32,11 @@ server = processClubMeasurementRequest :<|> processClubMetadataRequest
 api :: Proxy Api
 api = Proxy
 
-nt :: forall a c. LogItem c => Conf -> c -> AppHandler a -> Handler a
-nt conf ctx appHandler = Handler $ ExceptT $ runAppM conf ctx (runExceptT appHandler)
+natTrans :: forall a c. LogItem c => Conf -> c -> AppHandler a -> Handler a
+natTrans conf ctx appHandler = Handler $ ExceptT $ runAppM conf ctx (runExceptT appHandler)
 
 mkApp :: LogItem c => Conf -> c -> Application
-mkApp conf ctx = serve api $ hoistServer api (nt conf ctx) server
+mkApp conf ctx = serve api $ hoistServer api (natTrans conf ctx) server
 
 corsResourcePolicy :: CorsResourcePolicy
 corsResourcePolicy =

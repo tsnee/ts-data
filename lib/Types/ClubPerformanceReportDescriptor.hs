@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..)) where
+module Types.ClubPerformanceReportDescriptor (ClubPerformanceReportDescriptor (..)) where
 
 import Data.Text (Text)
 import Data.Text qualified as T
@@ -16,15 +16,15 @@ import Types.ProgramYear (ProgramYear)
 showDay :: Day -> Text
 showDay = T.pack . formatTime defaultTimeLocale "%m/%d/%Y"
 
-data ClubPerformanceReportSpec = ClubPerformanceReportSpec
+data ClubPerformanceReportDescriptor = ClubPerformanceReportDescriptor
   { format :: !Format
   , district :: !District
   , reportMonth :: !Month
   , asOf :: !Day
   , programYear :: !ProgramYear
   }
-instance ToHttpApiData ClubPerformanceReportSpec where
-  toUrlPiece ClubPerformanceReportSpec{district, reportMonth, asOf, programYear} =
+instance ToHttpApiData ClubPerformanceReportDescriptor where
+  toUrlPiece ClubPerformanceReportDescriptor{district, reportMonth, asOf, programYear} =
     T.intercalate
       "~"
       [ "clubperformance"

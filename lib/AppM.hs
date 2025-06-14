@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module MonadStack (AppM, runAppM) where
+module AppM (AppM, runAppM) where
 
 import Control.Monad (void)
 import Control.Monad.Reader (ReaderT (..), lift, runReaderT)

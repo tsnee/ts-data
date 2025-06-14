@@ -6,8 +6,8 @@ module Main where
 import Data.Time (pattern YearMonthDay)
 import Katip (Severity (..), Verbosity (..))
 
+import AppM (runAppM)
 import Download (downloadClubPerformanceStarting)
-import MonadStack (runAppM)
 import PersistenceStore.SQLite.Tables (createTables)
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))

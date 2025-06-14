@@ -12,7 +12,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 import Prelude
 
-import PersistenceStore.ClubMetrics (ClubMetric (..))
+import PersistenceStore.ClubMetric (ClubMetric (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import Serve.ClubMeasurement (buildIntSeries)
 import Types.ClubMeasurementResponse (Codomain (..), Series (..))

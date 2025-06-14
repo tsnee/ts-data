@@ -8,7 +8,7 @@ import Test.Tasty (TestName, TestTree)
 import Test.Tasty.HUnit (testCase)
 import Prelude
 
-import MonadStack (AppM, runAppM)
+import AppM (AppM, runAppM)
 import PersistenceStore.SQLite.Class (testDatabase, withDatabase)
 import Types.Conf (Conf (..))
 
@@ -17,8 +17,8 @@ type AppAssertion = Connection -> AppM ()
 
 appTestCase :: Namespace -> TestName -> AppAssertion -> TestTree
 appTestCase ns name assertion =
-  testCase name $
-    runAppM
+  testCase name
+    $ runAppM
       Conf
         { databaseName = testDatabase
         , environment = "test"
@@ -26,5 +26,5 @@ appTestCase ns name assertion =
         , severity = WarningS
         , verbosity = V3
         }
-      () $
-      withDatabase assertion
+      ()
+    $ withDatabase assertion

@@ -48,11 +48,11 @@ import Servant.Client
 import UnliftIO (liftIO)
 import Prelude
 
-import MonadStack (AppM)
+import AppM (AppM)
 import PersistenceStore.SQLite.Insert (saveReport)
 import Types.AppEnv (AppEnv (..))
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
-import Types.ClubPerformanceReportSpec (ClubPerformanceReportSpec (..))
+import Types.ClubPerformanceReportDescriptor (ClubPerformanceReportDescriptor (..))
 import Types.District (District (..))
 import Types.Format (Format (..))
 import Types.ProgramYear (ProgramYear (..))
@@ -66,7 +66,7 @@ type ClubPerformanceAPI =
   Capture "programYear" ProgramYear
     :> "export.aspx"
     :> QueryParam "type" Format
-    :> QueryParam "report" ClubPerformanceReportSpec
+    :> QueryParam "report" ClubPerformanceReportDescriptor
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
 downloadClubPerformanceStarting :: District -> Day -> AppM ()
@@ -136,10 +136,10 @@ reportFromDayOfRecord servantEnv district reportingMonth dayOfRecord = download 
  where
   YearMonth reportingYear reportingMonthOfYear = reportingMonth
   programYear = ProgramYear $ if reportingMonthOfYear < July then pred reportingYear else reportingYear
-  spec = ClubPerformanceReportSpec CSV district reportingMonth dayOfRecord programYear
+  spec = ClubPerformanceReportDescriptor CSV district reportingMonth dayOfRecord programYear
 
-download :: ClientEnv -> ClubPerformanceReportSpec -> AppM (Either Text ClubPerformanceReport)
-download env spec@ClubPerformanceReportSpec{format} = do
+download :: ClientEnv -> ClubPerformanceReportDescriptor -> AppM (Either Text ClubPerformanceReport)
+download env spec@ClubPerformanceReportDescriptor{format} = do
   result <- fetchClubPerformanceReport env spec
   case result of
     Left err -> pure $ Left $ T.pack $ show err
@@ -189,7 +189,7 @@ parseFooter footer = do
 
 fetchClubPerformanceReport
   :: ClientEnv
-  -> ClubPerformanceReportSpec
+  -> ClubPerformanceReportDescriptor
   -> AppM (Either ClientError ClubPerformanceReport)
 fetchClubPerformanceReport servantEnv spec = liftIO $ runClientM clientM servantEnv
  where
