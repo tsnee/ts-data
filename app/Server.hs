@@ -17,6 +17,7 @@ import AppM (runAppM)
 import Serve.Api (Api, AppHandler)
 import Serve.ClubMeasurement (processClubMeasurementRequest)
 import Serve.ClubMetadata (processClubMetadataRequest)
+import Serve.ClubMetrics (processClubMetricsRequest)
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
 
@@ -27,7 +28,10 @@ dcpDb :: DatabaseName
 dcpDb = DatabaseName "dcp.sqlite"
 
 server :: ServerT Api AppHandler
-server = processClubMeasurementRequest :<|> processClubMetadataRequest
+server =
+  processClubMeasurementRequest
+    :<|> processClubMetadataRequest
+    :<|> processClubMetricsRequest
 
 api :: Proxy Api
 api = Proxy

@@ -73,6 +73,7 @@ library
         Serve.Api,
         Serve.ClubMeasurement,
         Serve.ClubMetadata,
+        Serve.ClubMetrics,
         Types.AppEnv,
         Types.Area,
         Types.ClubMeasurementRequest,

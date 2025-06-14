@@ -10,6 +10,7 @@ import Servant.API (Capture, Get, JSON, Post, ReqBody, (:<|>), (:>))
 import Servant.Server (ServerError)
 
 import AppM (AppM)
+import PersistenceStore.ClubMetric (ClubMetric)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..))
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))
@@ -24,6 +25,8 @@ type Api =
   :<|> "clubs"
     :> Capture "club_number" ClubNumber
     :> Get '[JSON] ClubMetadataResponse
+  :<|> "clubmetrics"
+    :> Get '[JSON] [ClubMetric]
 {- ORMOLU_ENABLE -}
 
 type AppHandler = ExceptT ServerError AppM
