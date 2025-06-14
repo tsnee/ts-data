@@ -56,7 +56,7 @@ loadNameAndDivision clubNumber today = do
     Right result -> pure result
 
 -- | Parse the combination of club name and division returned from the database.
-parseNameDivision :: [Measurement Text] -> Either Text (Maybe Text, Maybe Text)
+parseNameDivision :: forall a. Show a => [Measurement a] -> Either Text (Maybe a, Maybe a)
 parseNameDivision namesAndDivisions = case namesAndDivisions of
   [] -> Right (Nothing, Nothing)
   [Measurement{metricId = m0, value = v0}, Measurement{metricId = m1, value = v1}] ->

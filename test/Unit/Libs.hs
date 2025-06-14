@@ -77,14 +77,17 @@ tests =
     , testGroup
         "parseNameDivision"
         [ testCase "Empty list" $ do
-            let actual = parseNameDivision []
-                expected = Right (Nothing, Nothing)
+            let actual = parseNameDivision [] :: Either Text (Maybe Int, Maybe Int)
+                expected = Right (Nothing, Nothing) :: Either Text (Maybe Int, Maybe Int)
             actual @?= expected
         , testCase "Name then division" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
-                name = Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
-                division = Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate}
+                name =
+                  Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
+                    :: Measurement Text
+                division =
+                  Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate} :: Measurement Text
                 actual = parseNameDivision [name, division]
                 expected = Right (Just "Foo", Just "A")
             actual @?= expected
@@ -93,35 +96,34 @@ tests =
                 baseDate = DbDate (YearMonthDay 2025 5 1)
                 name = Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
                 division = Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate}
-                actual = parseNameDivision [division, name]
-                expected = Right (Just "Foo", Just "A")
+                actual = parseNameDivision [division, name] :: Either Text (Maybe Text, Maybe Text)
+                expected = Right (Just "Foo", Just "A") :: Either Text (Maybe Text, Maybe Text)
             actual @?= expected
         , testCase "Unexpected metrics" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
-                m0 = Measurement{clubId, metricId = fromEnum ActiveMembers, value = "10", date = baseDate}
-                m1 = Measurement{clubId, metricId = fromEnum MembershipBase, value = "15", date = baseDate}
-                actual = parseNameDivision [m0, m1]
+                m0 = Measurement{clubId, metricId = fromEnum ActiveMembers, value = 10, date = baseDate}
+                m1 = Measurement{clubId, metricId = fromEnum MembershipBase, value = 15, date = baseDate}
+                actual = parseNameDivision [m0, m1] :: Either Text (Maybe Int, Maybe Int)
                 expected =
                   Left $
                     mconcat
                       [ "Expected club name and division, but found [metricId "
                       , T.show ActiveMembers
-                      , ", value "
-                      , "10"
-                      , " : metricId "
+                      , ", value 10 : metricId "
                       , T.show MembershipBase
-                      , ", value "
-                      , "15"
-                      , "]"
+                      , ", value 15]"
                       ]
+                    :: Either Text (Maybe Int, Maybe Int)
             actual @?= expected
         , testCase "Wrong length" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
                 name = Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
                 actual = parseNameDivision [name]
-                expected = Left $ "Expected list length of 0 or 2, but found " <> T.show [name]
+                expected =
+                  Left $ "Expected list length of 0 or 2, but found " <> T.show [name]
+                    :: Either Text (Maybe Text, Maybe Text)
             actual @?= expected
         ]
     ]
