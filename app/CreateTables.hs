@@ -7,10 +7,10 @@ import Katip (Severity (..), Verbosity (..))
 import Prelude
 
 import AppM (runAppM)
+import Options (parseConf)
 import PersistenceStore.SQLite.Tables (createTables)
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
-import Options (parseConf)
 
 newtype ColumnType = ColumnType Query
 
