@@ -37,7 +37,7 @@ tests =
     "Serve"
     [ testGroup
         "buildIntSeries"
-          [ testCase "Three row result set" $ do
+        [ testCase "Three row result set" $ do
             let clubId = ClubNumber 2490993
                 rs =
                   [ Measurement
@@ -72,7 +72,7 @@ tests =
                       , codomain = IntCodomain [15]
                       }
                   ]
-          actual @?= expected
+            actual @?= expected
         ]
     , testGroup
         "parseNameDivision"
@@ -83,42 +83,43 @@ tests =
         , testCase "Name then division" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
-                name = Measurement {clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
-                division = Measurement {clubId, metricId = fromEnum Division, value = "A", date = baseDate}
+                name = Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
+                division = Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate}
                 actual = parseNameDivision [name, division]
                 expected = Right (Just "Foo", Just "A")
             actual @?= expected
         , testCase "Division then name" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
-                name = Measurement {clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
-                division = Measurement {clubId, metricId = fromEnum Division, value = "A", date = baseDate}
+                name = Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
+                division = Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate}
                 actual = parseNameDivision [division, name]
                 expected = Right (Just "Foo", Just "A")
             actual @?= expected
         , testCase "Unexpected metrics" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
-                m0 = Measurement {clubId, metricId = fromEnum ActiveMembers, value = "10", date = baseDate}
-                m1 = Measurement {clubId, metricId = fromEnum MembershipBase, value = "15", date = baseDate}
+                m0 = Measurement{clubId, metricId = fromEnum ActiveMembers, value = "10", date = baseDate}
+                m1 = Measurement{clubId, metricId = fromEnum MembershipBase, value = "15", date = baseDate}
                 actual = parseNameDivision [m0, m1]
-                expected = Left $
-                  mconcat
-                    [ "Expected club name and division, but found [metricId "
-                    , T.show ActiveMembers
-                    , ", value "
-                    , T.show "10"
-                    , " : metricId "
-                    , T.show MembershipBase
-                    , ", value "
-                    , T.show "15"
-                    , "]"
-                    ]
+                expected =
+                  Left $
+                    mconcat
+                      [ "Expected club name and division, but found [metricId "
+                      , T.show ActiveMembers
+                      , ", value "
+                      , "10"
+                      , " : metricId "
+                      , T.show MembershipBase
+                      , ", value "
+                      , "15"
+                      , "]"
+                      ]
             actual @?= expected
         , testCase "Wrong length" $ do
             let clubId = ClubNumber 1
                 baseDate = DbDate (YearMonthDay 2025 5 1)
-                name = Measurement {clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
+                name = Measurement{clubId, metricId = fromEnum ClubName, value = "Foo", date = baseDate}
                 actual = parseNameDivision [name]
                 expected = Left $ "Expected list length of 0 or 2, but found " <> T.show [name]
             actual @?= expected
