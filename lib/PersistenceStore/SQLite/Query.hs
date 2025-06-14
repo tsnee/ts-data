@@ -14,6 +14,7 @@ module PersistenceStore.SQLite.Query
   ) where
 
 import Data.List (intersperse)
+import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text as T (concat, show, toCaseFold, unpack)
 import Data.Time (Day)
@@ -26,7 +27,6 @@ import Database.SQLite.Simple
   )
 import Katip (Severity (..), logFM, ls)
 import UnliftIO (liftIO)
-import Data.String (fromString)
 import Prelude
 
 import AppM (AppM)
