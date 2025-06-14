@@ -89,7 +89,8 @@ library
         Types.District,
         Types.Division,
         Types.Format,
-        Types.ProgramYear
+        Types.ProgramYear,
+        Options
 
     -- Modules included in this library but not exported.
     -- other-modules:  
@@ -122,6 +123,7 @@ library
         text ^>=2.1.2,
         text-show ^>=3.11.1,
         text-show-instances ^>=3.9.10,
+        optparse-applicative ^>=0.17.1.0,
         time ^>=1.14,
         unliftio ^>=0.2.25.1,
         utf8-string ^>=1.0.2,
@@ -156,6 +158,7 @@ executable create-tables
         text ^>=2.1.2,
         text-show ^>=3.11.1,
         unliftio ^>=0.2.25.1,
+        optparse-applicative ^>=0.17.1.0,
         ts-data
 
     -- Directories containing source files.
@@ -183,6 +186,7 @@ executable download-reports
         katip ^>=0.8.8.2,
         text-show ^>=3.11.1,
         time ^>=1.14,
+        optparse-applicative ^>=0.17.1.0,
         ts-data
 
     -- Directories containing source files.
@@ -210,6 +214,7 @@ executable gendocs
         autodocodec-openapi3 ^>=0.2.1.4,
         bytestring ^>=0.12.0.2,
         katip ^>=0.8.8.2,
+        optparse-applicative ^>=0.17.1.0,
         openapi3 ^>=3.2.4,
         servant-openapi3 ^>=2.0.1.6,
         ts-data
@@ -246,6 +251,7 @@ executable server
         wai-cors ^>=0.2.7,
         wai-extra ^>=3.1.17,
         warp ^>=3.4.8,
+        optparse-applicative ^>=0.17.1.0,
         ts-data
 
     -- Directories containing source files.
