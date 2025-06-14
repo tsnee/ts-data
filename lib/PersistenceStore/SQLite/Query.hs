@@ -14,9 +14,8 @@ module PersistenceStore.SQLite.Query
   ) where
 
 import Data.List (intersperse)
-import Data.String (fromString)
 import Data.Text (Text)
-import Data.Text as T (concat, show, toCaseFold, unpack)
+import Data.Text as T (concat, show, toCaseFold)
 import Data.Time (Day)
 import Database.SQLite.Simple
   ( Connection
@@ -24,60 +23,104 @@ import Database.SQLite.Simple
   , NamedParam (..)
   , Query (..)
   , queryNamed
+  , execute_
+  , open
+  , close
   )
-import Katip (Severity (..), logFM, ls)
-import UnliftIO (liftIO)
+import Katip (KatipContext, Severity (..), logFM, ls)
+import UnliftIO (MonadIO, liftIO)
+import Unsafe.Coerce (unsafeCoerce)
 import Prelude
 
-import AppM (AppM)
+import Control.Monad.Reader (MonadReader, ask)
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable
-  , withDatabase
   )
+import Types.Conf (Conf (..))
+import Types.DatabaseName (DatabaseName (..))
+import Types.AppEnv (AppEnv)
 import Types.ClubMetric (ClubMetric (..))
 import Types.ClubNumber (ClubNumber (..))
 
 loadIntMeasurements
-  :: ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
+  :: (MonadIO m, MonadReader AppEnv m, KatipContext m)
+  => ClubNumber
+  -> [ClubMetric]
+  -> Maybe Day
+  -> Maybe Day
+  -> m [Measurement Int]
 loadIntMeasurements = loadMeasurements intMeasurementTable
 
 loadIntMeasurementsWithConnection
-  :: Connection -> ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
+  :: MonadIO m
+  => Connection
+  -> ClubNumber
+  -> [ClubMetric]
+  -> Maybe Day
+  -> Maybe Day
+  -> m [Measurement Int]
 loadIntMeasurementsWithConnection conn = loadMeasurementsWithConnection conn intMeasurementTable
 
 loadTextMeasurements
-  :: ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
+  :: (MonadIO m, MonadReader AppEnv m, KatipContext m)
+  => ClubNumber
+  -> [ClubMetric]
+  -> Maybe Day
+  -> Maybe Day
+  -> m [Measurement Text]
 loadTextMeasurements = loadMeasurements textMeasurementTable
 
 loadTextMeasurementsWithConnection
-  :: Connection -> ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
+  :: MonadIO m
+  => Connection
+  -> ClubNumber
+  -> [ClubMetric]
+  -> Maybe Day
+  -> Maybe Day
+  -> m [Measurement Text]
 loadTextMeasurementsWithConnection conn = loadMeasurementsWithConnection conn textMeasurementTable
 
 loadMeasurements
-  :: forall a
-   . FromRow (Measurement a)
+  :: forall m a
+   . ( MonadIO m
+     , MonadReader AppEnv m
+     , KatipContext m
+     , FromRow (Measurement a)
+     )
   => TableName
   -> ClubNumber
   -> [ClubMetric]
   -> Maybe Day
   -> Maybe Day
-  -> AppM [Measurement a]
-loadMeasurements tableName clubNumber metrics startM endM = withDatabase $
-  \conn -> loadMeasurementsWithConnection conn tableName clubNumber metrics startM endM
+  -> m [Measurement a]
+loadMeasurements tableName clubNumber metrics startM endM = do
+  AppEnv{conf = Conf{databaseName = DatabaseName dbName}} <- ask
+  conn <- liftIO $ open dbName
+  liftIO $ execute_ conn "PRAGMA foreign_keys = ON"
+  result <-
+    loadMeasurementsWithConnection
+      conn
+      tableName
+      clubNumber
+      metrics
+      startM
+      endM
+  liftIO $ close conn
+  pure result
 
 loadMeasurementsWithConnection
-  :: forall a
-   . FromRow (Measurement a)
+  :: forall m a
+   . (MonadIO m, KatipContext m, FromRow (Measurement a))
   => Connection
   -> TableName
   -> ClubNumber
   -> [ClubMetric]
   -> Maybe Day
   -> Maybe Day
-  -> AppM [Measurement a]
+  -> m [Measurement a]
 loadMeasurementsWithConnection conn tableName clubNumber metrics startM endM = do
   let (query, metricParams) = buildLoadMeasurementsQuery tableName metrics startM endM
   logFM DebugS $ ls $ fromQuery query
@@ -101,7 +144,7 @@ endDateParamQ = ":end"
 metricIdParam :: ClubMetric -> Text
 metricIdParam metric = T.concat [":", T.toCaseFold $ T.show metric]
 metricIdParamQ :: ClubMetric -> Query
-metricIdParamQ = fromString . T.unpack . metricIdParam
+metricIdParamQ = unsafeCoerce . metricIdParam
 
 buildLoadMeasurementsQuery
   :: TableName -> [ClubMetric] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])

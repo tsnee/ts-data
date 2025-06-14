@@ -21,20 +21,25 @@ import Database.SQLite.Simple
   ( Connection
   , NamedParam (..)
   , executeNamed
+  , execute_
+  , open
+  , close
   )
 import Database.SQLite.Simple.ToField (ToField)
-import UnliftIO (liftIO)
+import UnliftIO (MonadIO, liftIO)
 import Prelude
 
-import AppM (AppM)
+import Control.Monad.Reader (MonadReader, ask)
 import PersistenceStore.Analyzer (analyze)
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable
-  , withDatabase
   )
+import Types.Conf (Conf (..))
+import Types.DatabaseName (DatabaseName (..))
+import Types.AppEnv (AppEnv)
 import Types.ClubMetric (ClubMetric (ReportingMonth))
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport
@@ -43,13 +48,31 @@ import Types.ClubPerformanceReport
   , clubNumber
   )
 
-saveReport :: ClubPerformanceReport -> AppM ()
-saveReport report = withDatabase $ flip saveReportWithConnection report
+saveReport
+  :: (MonadIO m, MonadReader AppEnv m)
+  => ClubPerformanceReport
+  -> m ()
+saveReport report = do
+  AppEnv{conf = Conf{databaseName = DatabaseName dbName}} <- ask
+  conn <- liftIO $ open dbName
+  liftIO $ execute_ conn "PRAGMA foreign_keys = ON"
+  saveReportWithConnection conn report
+  liftIO $ close conn
 
-saveReportWithConnection :: Connection -> ClubPerformanceReport -> AppM ()
+saveReportWithConnection
+  :: MonadIO m
+  => Connection
+  -> ClubPerformanceReport
+  -> m ()
 saveReportWithConnection conn ClubPerformanceReport{dayOfRecord, month, records} = traverse_ (saveRecord conn dayOfRecord month) records
 
-saveRecord :: Connection -> Day -> Month -> ClubPerformanceRecord -> AppM ()
+saveRecord
+  :: MonadIO m
+  => Connection
+  -> Day
+  -> Month
+  -> ClubPerformanceRecord
+  -> m ()
 saveRecord conn dayOfRecord month record = do
   let clubId = clubNumber record
       monthMetricId = fromEnum ReportingMonth
@@ -62,7 +85,7 @@ saveRecord conn dayOfRecord month record = do
   traverse_ (saveIntMeasurement conn) (reportingMonthMeasurement : intRows)
   traverse_ (saveTextMeasurement conn) textRows
 
-saveClubIfNecessary :: Connection -> ClubNumber -> AppM ()
+saveClubIfNecessary :: MonadIO m => Connection -> ClubNumber -> m ()
 saveClubIfNecessary conn (ClubNumber clubNumber) =
   liftIO $
     executeNamed
@@ -70,14 +93,14 @@ saveClubIfNecessary conn (ClubNumber clubNumber) =
       "INSERT OR IGNORE INTO clubs(id) VALUES (:clubNumber);"
       [":clubNumber" := clubNumber]
 
-saveIntMeasurement :: Connection -> Measurement Int -> AppM ()
+saveIntMeasurement :: MonadIO m => Connection -> Measurement Int -> m ()
 saveIntMeasurement = saveMeasurement intMeasurementTable
 
-saveTextMeasurement :: Connection -> Measurement Text -> AppM ()
+saveTextMeasurement :: MonadIO m => Connection -> Measurement Text -> m ()
 saveTextMeasurement = saveMeasurement textMeasurementTable
 
 {- ORMOLU_DISABLE -}
-saveMeasurement :: forall a. ToField a => TableName -> Connection -> Measurement a -> AppM ()
+saveMeasurement :: forall m a. (MonadIO m, ToField a) => TableName -> Connection -> Measurement a -> m ()
 saveMeasurement (TableName tableName) conn Measurement{clubId, metricId, value, date} =
   liftIO $ executeNamed
     conn
