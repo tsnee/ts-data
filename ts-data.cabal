@@ -271,6 +271,7 @@ test-suite ts-data-test
     other-modules:
         System.AppTestCase,
         System.Persistence,
+        Unit.Download,
         Unit.Apps,
         Unit.Libs,
         Unit.Types
