@@ -270,8 +270,8 @@ test-suite ts-data-test
     -- Modules included in this executable, other than Main.
     other-modules:
         System.AppTestCase,
+        System.Download,
         System.Persistence,
-        Unit.Download,
         Unit.Apps,
         Unit.Libs,
         Unit.Types

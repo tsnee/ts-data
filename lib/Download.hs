@@ -73,6 +73,7 @@ data DownloadDeps = DownloadDeps
   }
 
 data DownloadAction = Continue Day Month | Done
+  deriving (Eq, Show)
 
 -- | Number of days to try downloading a report before giving up.
 maxLagDays :: Integer

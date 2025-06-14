@@ -1,26 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
 
-module Unit.Download where
+module System.Download where
 
-import Data.IORef
+import Data.IORef (IORef, modifyIORef', newIORef, readIORef)
 import Data.Time (Day, fromGregorian)
-import Data.Time.Calendar.Month (Month(..), YearMonth(..))
+import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, (@?=))
+import Test.Tasty.HUnit ((@?=))
 import UnliftIO (liftIO)
 
 import Download
-  ( DownloadAction(..)
-  , DownloadDeps(..)
+  ( DownloadAction (..)
+  , DownloadDeps (..)
   , downloadClubPerformance
   )
-import Types.Area (Area(..))
-import Types.ClubNumber (ClubNumber(..))
-import Types.ClubPerformanceReport (ClubPerformanceRecord(..), ClubPerformanceReport(..))
-import Types.ClubStatus (ClubStatus(..))
-import Types.DistinguishedStatus (DistinguishedStatus(..))
-import Types.District (District(..))
-import Types.Division (Division(..))
+import System.AppTestCase (appTestCase)
+import Types.Area (Area (..))
+import Types.ClubNumber (ClubNumber (..))
+import Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..))
+import Types.ClubStatus (ClubStatus (..))
+import Types.DistinguishedStatus (DistinguishedStatus (..))
+import Types.District (District (..))
+import Types.Division (Division (..))
 
 sampleDay :: Day
 sampleDay = fromGregorian 2025 5 1
@@ -67,8 +69,8 @@ sampleReport =
 stubDeps :: IORef Int -> DownloadDeps
 stubDeps ref =
   DownloadDeps
-    { fetchReport = \_ -> pure $ Right sampleReport
-    , persistReport = \_ -> liftIO $ modifyIORef' ref (+1)
+    { fetchReport = const $ pure $ Right sampleReport
+    , persistReport = const $ liftIO $ modifyIORef' ref (+ 1)
     , currentDay = pure (fromGregorian 2025 5 2)
     }
 
@@ -76,22 +78,22 @@ tests :: TestTree
 tests =
   testGroup
     "Download"
-    [ testCase "Persists and continues" $ do
-        ref <- newIORef 0
+    [ appTestCase "download" "Persists and continues" $ do
+        ref <- liftIO $ newIORef 0
         action <- downloadClubPerformance (stubDeps ref) (District 1) sampleDay sampleMonth
-        cnt <- readIORef ref
-        cnt @?= 1
-        action @?= Continue (fromGregorian 2025 5 2) sampleMonth
-    , testCase "Done when past run date" $ do
-        ref <- newIORef 0
+        cnt <- liftIO $ readIORef ref
+        liftIO $ cnt @?= 1
+        liftIO $ action @?= Continue (fromGregorian 2025 5 2) sampleMonth
+    , appTestCase "download" "Done when past run date" $ do
+        ref <- liftIO $ newIORef (0 :: Int)
         let emptyDeps =
               DownloadDeps
                 { fetchReport = \_ -> pure $ Right sampleReport{records = []}
-                , persistReport = \_ -> liftIO $ modifyIORef' ref (+1)
+                , persistReport = \_ -> liftIO $ modifyIORef' ref (+ 1)
                 , currentDay = pure sampleDay
                 }
         action <- downloadClubPerformance emptyDeps (District 1) sampleDay sampleMonth
-        cnt <- readIORef ref
-        cnt @?= 0
-        action @?= Done
+        cnt <- liftIO $ readIORef ref
+        liftIO $ cnt @?= 0
+        liftIO $ action @?= Done
     ]
