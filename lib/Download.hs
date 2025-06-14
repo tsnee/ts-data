@@ -11,12 +11,14 @@ Maintainer  : tomsnee@gmail.com
 -}
 module Download
   ( CsvOctetStream (..)
+  , DownloadDeps (..)
+  , DownloadAction (..)
+  , decodeClubReport
   , download
   , downloadClubPerformanceStarting
+  , downloadClubPerformance
   , parseFooter
-  , decodeClubReport
-  )
-where
+  ) where
 
 import Control.Monad.Reader (ask)
 import Data.ByteString.Lazy.Char8 qualified as BL8
@@ -64,6 +66,15 @@ import Types.District (District (..))
 import Types.Format (Format (..))
 import Types.ProgramYear (ProgramYear (..))
 
+data DownloadDeps = DownloadDeps
+  { fetchReport :: ClubPerformanceReportDescriptor -> AppM (Either Text ClubPerformanceReport)
+  , persistReport :: ClubPerformanceReport -> AppM ()
+  , currentDay :: AppM Day
+  }
+
+data DownloadAction = Continue Day Month | Done
+  deriving (Eq, Show)
+
 -- | Number of days to try downloading a report before giving up.
 maxLagDays :: Integer
 maxLagDays = 15
@@ -79,7 +90,20 @@ type ClubPerformanceAPI =
 downloadClubPerformanceStarting :: District -> Day -> AppM ()
 downloadClubPerformanceStarting district dayOfRecord = do
   servantEnv <- mkServantClientEnv
-  downloadClubPerformance servantEnv district dayOfRecord $ pred $ dayPeriod dayOfRecord
+  let deps =
+        DownloadDeps
+          { fetchReport = download servantEnv
+          , persistReport = saveReport
+          , currentDay = today
+          }
+      startMonth = pred $ dayPeriod dayOfRecord
+  loop deps dayOfRecord startMonth
+ where
+  loop deps day month = do
+    action <- downloadClubPerformance deps district day month
+    case action of
+      Done -> pure ()
+      Continue nextDay nextMonth -> loop deps nextDay nextMonth
 
 mkServantClientEnv :: AppM ClientEnv
 mkServantClientEnv = do
@@ -91,16 +115,21 @@ mkServantClientEnv = do
   manager <- liftIO $ newManager managerSettings
   pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
 
-downloadClubPerformance :: ClientEnv -> District -> Day -> Month -> AppM ()
-downloadClubPerformance servantEnv district dayOfRecord reportingMonth = do
+downloadClubPerformance
+  :: DownloadDeps
+  -> District
+  -> Day
+  -> Month
+  -> AppM DownloadAction
+downloadClubPerformance deps district dayOfRecord reportingMonth = do
   let eom = periodLastDay reportingMonth
       lagDays = diffDays dayOfRecord eom
-  result <- reportFromDayOfRecord servantEnv district reportingMonth dayOfRecord
-  runDate <- today
+  result <- reportFromDayOfRecord (fetchReport deps) district reportingMonth dayOfRecord
+  runDate <- currentDay deps
   case result of
-    Left err -> logFM ErrorS $ ls err
+    Left err -> logFM ErrorS (ls err) >> pure Done
     Right ClubPerformanceReport{records = []}
-      | dayOfRecord >= runDate -> logFM NoticeS "Done."
+      | dayOfRecord >= runDate -> logFM NoticeS "Done." >> pure Done
       | dayPeriod dayOfRecord == succ reportingMonth -> do
           logFM DebugS $
             ls $
@@ -111,7 +140,7 @@ downloadClubPerformance servantEnv district dayOfRecord reportingMonth = do
                 , formatDay dayOfRecord
                 , " - assume month-end reporting completed the previous day."
                 ]
-          downloadClubPerformance servantEnv district dayOfRecord $ succ reportingMonth
+          pure $ Continue dayOfRecord (succ reportingMonth)
       | lagDays < maxLagDays -> do
           logFM DebugS $
             ls $
@@ -122,8 +151,8 @@ downloadClubPerformance servantEnv district dayOfRecord reportingMonth = do
                 , formatDay dayOfRecord
                 , ", trying next day."
                 ]
-          downloadClubPerformance servantEnv district (succ dayOfRecord) reportingMonth
-      | otherwise ->
+          pure $ Continue (succ dayOfRecord) reportingMonth
+      | otherwise -> do
           logFM WarningS $
             ls $
               mconcat
@@ -133,13 +162,18 @@ downloadClubPerformance servantEnv district dayOfRecord reportingMonth = do
                 , formatDay dayOfRecord
                 , ", giving up."
                 ]
+          pure Done
     Right report -> do
-      saveReport report
-      downloadClubPerformance servantEnv district (succ dayOfRecord) reportingMonth
+      persistReport deps report
+      pure $ Continue (succ dayOfRecord) reportingMonth
 
 reportFromDayOfRecord
-  :: ClientEnv -> District -> Month -> Day -> AppM (Either Text ClubPerformanceReport)
-reportFromDayOfRecord servantEnv district reportingMonth dayOfRecord = download servantEnv spec
+  :: (ClubPerformanceReportDescriptor -> AppM (Either Text ClubPerformanceReport))
+  -> District
+  -> Month
+  -> Day
+  -> AppM (Either Text ClubPerformanceReport)
+reportFromDayOfRecord fetch district reportingMonth dayOfRecord = fetch spec
  where
   YearMonth reportingYear reportingMonthOfYear = reportingMonth
   programYear = ProgramYear $ if reportingMonthOfYear < July then pred reportingYear else reportingYear

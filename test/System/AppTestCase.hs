@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module System.AppTestCase (AppAssertion, appTestCase) where
+module System.AppTestCase (ConnectionAssertion, appConnTestCase, appTestCase) where
 
 import Database.SQLite.Simple (Connection)
 import Katip (Namespace, Severity (..), Verbosity (..))
@@ -13,12 +13,12 @@ import PersistenceStore.SQLite.Common (testDatabase, withDatabase)
 import Types.Conf (Conf (..))
 
 -- | Assertion for application tests that need database access.
-type AppAssertion = Connection -> AppM ()
+type ConnectionAssertion = Connection -> AppM ()
 
-appTestCase :: Namespace -> TestName -> AppAssertion -> TestTree
+appTestCase :: Namespace -> TestName -> AppM () -> TestTree
 appTestCase ns name assertion =
-  testCase name
-    $ runAppM
+  testCase name $
+    runAppM
       Conf
         { databaseName = testDatabase
         , environment = "test"
@@ -27,4 +27,8 @@ appTestCase ns name assertion =
         , verbosity = V3
         }
       ()
-    $ withDatabase assertion
+      assertion
+
+appConnTestCase :: Namespace -> TestName -> ConnectionAssertion -> TestTree
+appConnTestCase ns name assertion =
+  appTestCase ns name $ withDatabase assertion
