@@ -51,5 +51,12 @@ middleware = cors $ const $ Just corsResourcePolicy
 
 main :: IO ()
 main = do
-  let conf = Conf{db = dcpDb, env = "dev", ns = "server", sev = DebugS, v = V3}
+  let conf =
+        Conf
+          { databaseName = dcpDb
+          , environment = "dev"
+          , namespace = "server"
+          , severity = DebugS
+          , verbosity = V3
+          }
   run port $ middleware $ mkApp conf ()
