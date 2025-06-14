@@ -1,31 +1,56 @@
 ---
-name: Debug Cabal Paths
+name: Haskell CI
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
 
 jobs:
-  debug-cabal:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Haskell (GHC + Cabal)
-        uses: haskell/actions/setup@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-haskell@v1
         with:
           ghc-version: '9.12.2'
           cabal-version: '3.14.2.0'
 
-      - name: Debug Cabal paths
+      - name: Cache Cabal store
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-cabal
+        with:
+          path: $HOME/.cabal/store
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('ts-data.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Cache dist-newstyle
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-dist-newstyle
+        with:
+          path: dist-newstyle
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('app/**/*.hs','lib/**/*.hs',  'test/**/*.hs', 'ts-data.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+
+      - name: Install dependencies, if necessary
         run: |
           cabal update
-          echo "HOME=$HOME"
-          cabal user-config diff || echo "(no user config)"
-          echo "store-dir (from help):"
-          cabal --help | grep store-dir || true
-          echo "Listing ~/.cabal:"
-          find "$HOME/.cabal" -type d || true
+          cabal build --only-dependencies --enable-tests --enable-benchmarks
+      - name: Debug output
+        run: |
+          cabal user-config diff
+          find / -name libHSsrvnt-0.20.3.0-\*.a -ls
+          ls -la $HOME/.cabal
+          ls -la $HOME/.cabal/store
+      - name: Build
+        run: cabal build --enable-tests --enable-benchmarks --disable-documentation all
+      - name: Run tests
+        run: cabal test all
