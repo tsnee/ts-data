@@ -13,6 +13,7 @@ module Download
   ( CsvOctetStream (..)
   , DownloadDeps (..)
   , DownloadAction (..)
+  , decodeClubReport
   , download
   , downloadClubPerformanceStarting
   , downloadClubPerformance
@@ -196,17 +197,24 @@ download env spec@ClubPerformanceReportDescriptor{format} = do
 
 newtype CsvOctetStream = CsvOctetStream OctetStream
   deriving Accept via OctetStream
+
+-- | Decode a CSV club performance report.
+decodeClubReport :: BL8.ByteString -> Either String ClubPerformanceReport
+decodeClubReport bytes = do
+  let rows = BL8.lines bytes
+  (rawCsv, footer) <-
+    maybeToRight
+      ("Could not break " <> show (BL8.length bytes) <> " bytes into lines.")
+      $ unsnoc rows
+  (_, parsedCsv) <- decodeByName $ BL8.unlines rawCsv
+  (monthReported, dayOfRecord) <- parseFooter $ BL8.unpack footer
+  let YearMonth yearOfRecord monthOfRecord = dayPeriod dayOfRecord
+      yearReported = if monthReported <= monthOfRecord then yearOfRecord else pred yearOfRecord
+      records = toList parsedCsv
+  pure ClubPerformanceReport{dayOfRecord, month = YearMonth yearReported monthReported, records}
+
 instance MimeUnrender CsvOctetStream ClubPerformanceReport where
-  mimeUnrender _ bytes = do
-    let rows = BL8.lines bytes
-    (rawCsv, footer) <-
-      maybeToRight ("Could not break " <> show (BL8.length bytes) <> " bytes into lines.") $ unsnoc rows
-    (_, parsedCsv) <- decodeByName $ BL8.unlines rawCsv
-    (monthReported, dayOfRecord) <- parseFooter $ BL8.unpack footer
-    let YearMonth yearOfRecord monthOfRecord = dayPeriod dayOfRecord
-        yearReported = if monthReported <= monthOfRecord then yearOfRecord else pred yearOfRecord
-        records = toList parsedCsv
-    pure ClubPerformanceReport{dayOfRecord, month = YearMonth yearReported monthReported, records}
+  mimeUnrender _ = decodeClubReport
 
 -- Example footer: "Month of Apr, As of 05/01/2025"
 -- String type used by Cassava.

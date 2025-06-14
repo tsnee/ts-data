@@ -14,8 +14,9 @@ module PersistenceStore.SQLite.Query
   ) where
 
 import Data.List (intersperse)
+import Data.String (fromString)
 import Data.Text (Text)
-import Data.Text as T (concat, show, toCaseFold)
+import Data.Text as T (concat, show, toCaseFold, unpack)
 import Data.Time (Day)
 import Database.SQLite.Simple
   ( Connection
@@ -26,7 +27,6 @@ import Database.SQLite.Simple
   )
 import Katip (Severity (..), logFM, ls)
 import UnliftIO (liftIO)
-import Unsafe.Coerce (unsafeCoerce)
 import Prelude
 
 import AppM (AppM)
@@ -101,7 +101,7 @@ endDateParamQ = ":end"
 metricIdParam :: ClubMetric -> Text
 metricIdParam metric = T.concat [":", T.toCaseFold $ T.show metric]
 metricIdParamQ :: ClubMetric -> Query
-metricIdParamQ = unsafeCoerce . metricIdParam
+metricIdParamQ = fromString . T.unpack . metricIdParam
 
 buildLoadMeasurementsQuery
   :: TableName -> [ClubMetric] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
