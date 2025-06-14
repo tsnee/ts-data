@@ -14,7 +14,7 @@ import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
 import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
-import System.AppTestCase (appTestCase)
+import System.AppTestCase (appConnTestCase)
 import Types.ClubNumber (ClubNumber (..))
 
 tests :: TestTree
@@ -23,7 +23,7 @@ tests =
     "PersistenceStore.SQLite"
     [ testGroup
         "save/load round trip"
-        [ appTestCase "persistenceStore" "Everything saved can be loaded when date range is unspecified" $ \conn ->
+        [ appConnTestCase "persistenceStore" "Everything saved can be loaded when date range is unspecified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -40,7 +40,7 @@ tests =
               traverse_ (saveIntMeasurement conn) testMeasurements
               actual <- loadIntMeasurementsWithConnection conn (ClubNumber 1) [toEnum 1] Nothing Nothing
               liftIO $ actual @?= expected
-        , appTestCase "persistenceStore" "Everything saved can be loaded when date range is specified" $ \conn ->
+        , appConnTestCase "persistenceStore" "Everything saved can be loaded when date range is specified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -63,7 +63,7 @@ tests =
                   (Just (YearMonthDay 2024 12 31))
                   (Just (YearMonthDay 2025 2 1))
               liftIO $ actual @?= expected
-        , appTestCase "persistenceStore" "Date ranges can be loaded" $ \conn ->
+        , appConnTestCase "persistenceStore" "Date ranges can be loaded" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -86,7 +86,7 @@ tests =
                   (Just (YearMonthDay 2025 1 4))
                   (Just (YearMonthDay 2025 1 6))
               liftIO $ actual @?= expected
-        , appTestCase "persistenceStore" "No start date specified" $ \conn ->
+        , appConnTestCase "persistenceStore" "No start date specified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =
@@ -109,7 +109,7 @@ tests =
                   Nothing
                   (Just (YearMonthDay 2025 1 6))
               liftIO $ actual @?= expected
-        , appTestCase "persistenceStore" "No end date specified" $ \conn ->
+        , appConnTestCase "persistenceStore" "No end date specified" $ \conn ->
             do
               createTablesWithConnection conn
               let testMeasurements =

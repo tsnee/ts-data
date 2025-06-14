@@ -13,9 +13,11 @@ module PersistenceStore.SQLite.Query
   , loadTextMeasurementsWithConnection
   ) where
 
+import Control.Monad.Reader (MonadReader)
 import Data.List (intersperse)
+import Data.String (fromString)
 import Data.Text (Text)
-import Data.Text as T (concat, show, toCaseFold)
+import Data.Text as T (concat, show, toCaseFold, unpack)
 import Data.Time (Day)
 import Database.SQLite.Simple
   ( Connection
@@ -28,25 +30,27 @@ import Database.SQLite.Simple
   , close
   )
 import Katip (KatipContext, Severity (..), logFM, ls)
-import UnliftIO (MonadIO, liftIO)
-import Unsafe.Coerce (unsafeCoerce)
+import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import Prelude
 
-import Control.Monad.Reader (MonadReader, ask)
+import Control.Monad.Reader (MonadReader)
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable
   )
-import Types.Conf (Conf (..))
-import Types.DatabaseName (DatabaseName (..))
-import Types.AppEnv (AppEnv)
+import Types.AppEnv (AppEnv (..))
 import Types.ClubMetric (ClubMetric (..))
 import Types.ClubNumber (ClubNumber (..))
 
 loadIntMeasurements
-  :: (MonadIO m, MonadReader AppEnv m, KatipContext m)
+  :: forall m
+   . ( KatipContext m
+     , MonadIO m
+     , MonadReader AppEnv m
+     , MonadUnliftIO m
+     )
   => ClubNumber
   -> [ClubMetric]
   -> Maybe Day
@@ -55,7 +59,7 @@ loadIntMeasurements
 loadIntMeasurements = loadMeasurements intMeasurementTable
 
 loadIntMeasurementsWithConnection
-  :: MonadIO m
+  :: (KatipContext m, MonadIO m, MonadReader AppEnv m)
   => Connection
   -> ClubNumber
   -> [ClubMetric]
@@ -65,7 +69,12 @@ loadIntMeasurementsWithConnection
 loadIntMeasurementsWithConnection conn = loadMeasurementsWithConnection conn intMeasurementTable
 
 loadTextMeasurements
-  :: (MonadIO m, MonadReader AppEnv m, KatipContext m)
+  :: forall m
+   . ( KatipContext m
+     , MonadIO m
+     , MonadReader AppEnv m
+     , MonadUnliftIO m
+     )
   => ClubNumber
   -> [ClubMetric]
   -> Maybe Day
@@ -74,7 +83,7 @@ loadTextMeasurements
 loadTextMeasurements = loadMeasurements textMeasurementTable
 
 loadTextMeasurementsWithConnection
-  :: MonadIO m
+  :: (KatipContext m, MonadIO m, MonadReader AppEnv m)
   => Connection
   -> ClubNumber
   -> [ClubMetric]
@@ -85,10 +94,11 @@ loadTextMeasurementsWithConnection conn = loadMeasurementsWithConnection conn te
 
 loadMeasurements
   :: forall m a
-   . ( MonadIO m
-     , MonadReader AppEnv m
+   . ( FromRow (Measurement a)
      , KatipContext m
-     , FromRow (Measurement a)
+     , MonadIO m
+     , MonadReader AppEnv m
+     , MonadUnliftIO m
      )
   => TableName
   -> ClubNumber
@@ -96,11 +106,8 @@ loadMeasurements
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement a]
-loadMeasurements tableName clubNumber metrics startM endM = do
-  AppEnv{conf = Conf{databaseName = DatabaseName dbName}} <- ask
-  conn <- liftIO $ open dbName
-  liftIO $ execute_ conn "PRAGMA foreign_keys = ON"
-  result <-
+loadMeasurements tableName clubNumber metrics startM endM =
+  withDatabase $ \conn ->
     loadMeasurementsWithConnection
       conn
       tableName
@@ -108,12 +115,10 @@ loadMeasurements tableName clubNumber metrics startM endM = do
       metrics
       startM
       endM
-  liftIO $ close conn
-  pure result
 
 loadMeasurementsWithConnection
   :: forall m a
-   . (MonadIO m, KatipContext m, FromRow (Measurement a))
+   . (FromRow (Measurement a), KatipContext m, MonadIO m)
   => Connection
   -> TableName
   -> ClubNumber
@@ -144,7 +149,7 @@ endDateParamQ = ":end"
 metricIdParam :: ClubMetric -> Text
 metricIdParam metric = T.concat [":", T.toCaseFold $ T.show metric]
 metricIdParamQ :: ClubMetric -> Query
-metricIdParamQ = unsafeCoerce . metricIdParam
+metricIdParamQ = fromString . T.unpack . metricIdParam
 
 buildLoadMeasurementsQuery
   :: TableName -> [ClubMetric] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])

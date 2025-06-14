@@ -25,7 +25,7 @@ jobs:
         env:
           cache-name: cache-cabal
         with:
-          path: $HOME/.local/state/cabal/store
+          path: cabal-store
           key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('ts-data.cabal') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
@@ -42,11 +42,11 @@ jobs:
 
       - name: Install dependencies, if necessary
         run: |
-          cabal update
-          cabal build --only-dependencies --enable-tests --enable-benchmarks
+          cabal --store-dir cabal-store update
+          cabal --store-dir cabal-store build --only-dependencies --enable-tests --enable-benchmarks
 
       - name: Build
-        run: cabal build --enable-tests --enable-benchmarks --disable-documentation all
+        run: cabal --store-dir cabal-store build --enable-tests --enable-benchmarks --disable-documentation all
 
       - name: Run tests
-        run: cabal test all
+        run: cabal --store-dir cabal-store test all
