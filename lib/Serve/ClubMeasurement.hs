@@ -15,7 +15,7 @@ import TextShow (showt)
 import TextShow.Data.Time ()
 import Prelude
 
-import PersistenceStore.ClubMetrics (ClubMetrics (..))
+import PersistenceStore.ClubMetrics (ClubMetric (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Class (AppHandler)
@@ -48,7 +48,7 @@ buildTextSeries xs = toSeries TextCodomain <$> groupWith metricId xs
 toSeries :: forall a. ([a] -> Codomain) -> NonEmpty (Measurement a) -> Series
 toSeries toCodomain nel@(m :| _) = Series label domain codomain
  where
-  label = T.show (toEnum (metricId m) :: ClubMetrics)
+  label = T.show (toEnum (metricId m) :: ClubMetric)
   domain = toList $ formatDbDate . date <$> nel
   codomain = toCodomain $ toList $ value <$> nel
 

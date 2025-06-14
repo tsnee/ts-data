@@ -30,7 +30,7 @@ import Unsafe.Coerce (unsafeCoerce)
 import Prelude
 
 import MonadStack (AppM)
-import PersistenceStore.ClubMetrics (ClubMetrics (..))
+import PersistenceStore.ClubMetrics (ClubMetric (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Class
   ( TableName (..)
@@ -41,19 +41,19 @@ import PersistenceStore.SQLite.Class
 import Types.ClubNumber (ClubNumber (..))
 
 loadIntMeasurements
-  :: ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
+  :: ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
 loadIntMeasurements = loadMeasurements intMeasurementTable
 
 loadIntMeasurementsWithConnection
-  :: Connection -> ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
+  :: Connection -> ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Int]
 loadIntMeasurementsWithConnection conn = loadMeasurementsWithConnection conn intMeasurementTable
 
 loadTextMeasurements
-  :: ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
+  :: ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
 loadTextMeasurements = loadMeasurements textMeasurementTable
 
 loadTextMeasurementsWithConnection
-  :: Connection -> ClubNumber -> [ClubMetrics] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
+  :: Connection -> ClubNumber -> [ClubMetric] -> Maybe Day -> Maybe Day -> AppM [Measurement Text]
 loadTextMeasurementsWithConnection conn = loadMeasurementsWithConnection conn textMeasurementTable
 
 loadMeasurements
@@ -61,7 +61,7 @@ loadMeasurements
    . FromRow (Measurement a)
   => TableName
   -> ClubNumber
-  -> [ClubMetrics]
+  -> [ClubMetric]
   -> Maybe Day
   -> Maybe Day
   -> AppM [Measurement a]
@@ -74,7 +74,7 @@ loadMeasurementsWithConnection
   => Connection
   -> TableName
   -> ClubNumber
-  -> [ClubMetrics]
+  -> [ClubMetric]
   -> Maybe Day
   -> Maybe Day
   -> AppM [Measurement a]
@@ -98,13 +98,13 @@ endDateParm = ":end"
 endDateParmQ :: Query
 endDateParmQ = ":end"
 
-metricIdParm :: ClubMetrics -> Text
+metricIdParm :: ClubMetric -> Text
 metricIdParm metric = T.concat [":", T.toCaseFold $ T.show metric]
-metricIdParmQ :: ClubMetrics -> Query
+metricIdParmQ :: ClubMetric -> Query
 metricIdParmQ = unsafeCoerce . metricIdParm
 
 buildLoadMeasurementsQuery
-  :: TableName -> [ClubMetrics] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
+  :: TableName -> [ClubMetric] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
 buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, parms)
  where
   queriesAndParms = do
@@ -116,7 +116,7 @@ buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, parms)
   query = mconcat (intersperse " UNION ALL " subQueries) <> " ORDER BY metric_id"
 
 buildLoadMeasurementsSubQuery
-  :: TableName -> ClubMetrics -> Maybe Day -> Maybe Day -> Query
+  :: TableName -> ClubMetric -> Maybe Day -> Maybe Day -> Query
 buildLoadMeasurementsSubQuery tableName@(TableName tableNameQ) metric startM endM =
   mconcat
     [ "SELECT club_id, metric_id, value, date FROM "
@@ -137,7 +137,7 @@ Four cases:
 While the ":start IS NULL" serves no purpose in SQL, we choose to include the :start and :end parameters in every case.
 Since SQLite errors out if you give it a NamedParam that doesn't exist in the query, it is easier to always provide them.
 -}
-buildDateSubQuery :: TableName -> ClubMetrics -> Maybe Day -> Maybe Day -> Query
+buildDateSubQuery :: TableName -> ClubMetric -> Maybe Day -> Maybe Day -> Query
 buildDateSubQuery (TableName tableNameQ) metric startM endM =
   case (startM, endM) of
     (Just _, Just _) ->

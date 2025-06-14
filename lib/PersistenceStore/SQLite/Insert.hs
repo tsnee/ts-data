@@ -28,7 +28,7 @@ import Prelude
 
 import MonadStack (AppM)
 import PersistenceStore.Analyzer (analyze)
-import PersistenceStore.ClubMetrics (ClubMetrics (ReportingMonth))
+import PersistenceStore.ClubMetrics (ClubMetric (ReportingMonth))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Class
   ( TableName (..)
