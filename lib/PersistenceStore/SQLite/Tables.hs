@@ -17,13 +17,13 @@ import UnliftIO (liftIO)
 import Prelude
 
 import AppM (AppM)
-import PersistenceStore.ClubMetric (ClubMetric)
 import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable
   , textMeasurementTable
   , withDatabase
   )
+import Types.ClubMetric (ClubMetric)
 
 newtype ColumnType = ColumnType Query
 

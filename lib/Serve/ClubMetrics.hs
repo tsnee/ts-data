@@ -5,9 +5,9 @@ module Serve.ClubMetrics (processClubMetricsRequest) where
 
 import Prelude
 
-import PersistenceStore.ClubMetrics (ClubMetrics (..))
-import Serve.Class (AppHandler)
+import Serve.Api (AppHandler)
+import Types.ClubMetric (ClubMetric (..))
 
 -- | Returns all available 'ClubMetrics' values.
-processClubMetricsRequest :: AppHandler [ClubMetrics]
+processClubMetricsRequest :: AppHandler [ClubMetric]
 processClubMetricsRequest = pure [minBound .. maxBound]

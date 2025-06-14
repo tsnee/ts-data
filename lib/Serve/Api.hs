@@ -10,10 +10,10 @@ import Servant.API (Capture, Get, JSON, Post, ReqBody, (:<|>), (:>))
 import Servant.Server (ServerError)
 
 import AppM (AppM)
-import PersistenceStore.ClubMetric (ClubMetric)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..))
 import Types.ClubMetadataResponse (ClubMetadataResponse (..))
+import Types.ClubMetric (ClubMetric)
 import Types.ClubNumber (ClubNumber (..))
 
 {- ORMOLU_DISABLE -}

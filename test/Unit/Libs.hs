@@ -12,10 +12,10 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 import Prelude
 
-import PersistenceStore.ClubMetric (ClubMetric (..))
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import Serve.ClubMeasurement (buildIntSeries)
 import Types.ClubMeasurementResponse (Codomain (..), Series (..))
+import Types.ClubMetric (ClubMetric (..))
 import Types.ClubNumber (ClubNumber (..))
 
 sortByFirst :: [Text] -> [a] -> ([Text], [a])

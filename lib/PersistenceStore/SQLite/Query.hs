@@ -30,7 +30,6 @@ import Unsafe.Coerce (unsafeCoerce)
 import Prelude
 
 import AppM (AppM)
-import PersistenceStore.ClubMetric (ClubMetric (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Common
   ( TableName (..)
@@ -38,6 +37,7 @@ import PersistenceStore.SQLite.Common
   , textMeasurementTable
   , withDatabase
   )
+import Types.ClubMetric (ClubMetric (..))
 import Types.ClubNumber (ClubNumber (..))
 
 loadIntMeasurements

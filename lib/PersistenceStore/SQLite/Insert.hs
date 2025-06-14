@@ -23,7 +23,6 @@ import Database.SQLite.Simple
   , executeNamed
   )
 import Database.SQLite.Simple.ToField (ToField)
-import PersistenceStore.ClubMetric (ClubMetric (ReportingMonth))
 import UnliftIO (liftIO)
 import Prelude
 
@@ -36,6 +35,7 @@ import PersistenceStore.SQLite.Common
   , textMeasurementTable
   , withDatabase
   )
+import Types.ClubMetric (ClubMetric (ReportingMonth))
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport
   ( ClubPerformanceRecord (..)
