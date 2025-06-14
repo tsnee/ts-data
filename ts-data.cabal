@@ -290,6 +290,7 @@ test-suite ts-data-test
     -- Test dependencies.
     build-depends:
         base >=4.17,
+        bytestring ^>=0.12.0.2,
         katip ^>=0.8.8.2,
         mtl ^>=2.3.1,
         servant ^>=0.20.3,

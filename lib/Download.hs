@@ -19,7 +19,6 @@ module Download
 where
 
 import Control.Monad.Reader (ask)
-import Data.Bifunctor (first)
 import Data.ByteString.Lazy.Char8 qualified as BL8
 import Data.Csv (decodeByName)
 import Data.Either.Combinators (maybeToRight)
@@ -167,22 +166,22 @@ newtype CsvOctetStream = CsvOctetStream OctetStream
   deriving Accept via OctetStream
 
 -- | Decode a CSV club performance report.
-decodeClubReport :: BL8.ByteString -> Either Text ClubPerformanceReport
+decodeClubReport :: BL8.ByteString -> Either String ClubPerformanceReport
 decodeClubReport bytes = do
   let rows = BL8.lines bytes
   (rawCsv, footer) <-
     maybeToRight
-      ("Could not break " <> T.show (BL8.length bytes) <> " bytes into lines.")
+      ("Could not break " <> show (BL8.length bytes) <> " bytes into lines.")
       $ unsnoc rows
-  (_, parsedCsv) <- first T.pack $ decodeByName $ BL8.unlines rawCsv
-  (monthReported, dayOfRecord) <- first T.pack $ parseFooter $ BL8.unpack footer
+  (_, parsedCsv) <- decodeByName $ BL8.unlines rawCsv
+  (monthReported, dayOfRecord) <- parseFooter $ BL8.unpack footer
   let YearMonth yearOfRecord monthOfRecord = dayPeriod dayOfRecord
       yearReported = if monthReported <= monthOfRecord then yearOfRecord else pred yearOfRecord
       records = toList parsedCsv
   pure ClubPerformanceReport{dayOfRecord, month = YearMonth yearReported monthReported, records}
 
 instance MimeUnrender CsvOctetStream ClubPerformanceReport where
-  mimeUnrender _ bytes = first T.unpack $ decodeClubReport bytes
+  mimeUnrender _ = decodeClubReport
 
 -- Example footer: "Month of Apr, As of 05/01/2025"
 -- String type used by Cassava.

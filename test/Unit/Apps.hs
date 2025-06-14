@@ -3,17 +3,17 @@
 
 module Unit.Apps where
 
-import Data.ByteString.Lazy.Char8 qualified as BL8
-import Data.List (intercalate)
+import Data.ByteString.Lazy.Char8 qualified as BL8 (pack)
+import Data.List (intercalate, uncons)
 import Data.Time (pattern YearMonthDay)
+import Data.Time.Calendar.Month (pattern YearMonth)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertEqual, assertFailure, testCase, (@?=))
 import Prelude
 
 import Download (decodeClubReport, parseFooter)
 import Types.ClubNumber (ClubNumber (..))
-import Types.ClubPerformanceReport (ClubPerformanceReport (..), ClubPerformanceRecord (..))
-import Data.Time.Calendar.Month (pattern YearMonth)
+import Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..))
 
 tests :: TestTree
 tests =
@@ -66,16 +66,17 @@ tests =
                   , "Off. List On Time"
                   , "Club Distinguished Status"
                   ]
-                mkLine xs = BL8.pack (intercalate "," (map show xs) <> "\r\n")
+                    :: [String]
+                mkLine xs = BL8.pack $ intercalate "," (show <$> xs) <> "\r\n"
                 header = mkLine headerFields
                 footer = BL8.pack "Month of May, As of 05/01/2025\r\n"
                 csv = header <> footer
             case decodeClubReport csv of
-              Left err -> assertFailure (show err)
+              Left err -> assertFailure $ show err
               Right ClubPerformanceReport{month, dayOfRecord, records} -> do
                 month @?= YearMonth 2025 5
                 dayOfRecord @?= YearMonthDay 2025 5 1
-                assertEqual "records" 0 (length records)
+                assertEqual "records" 0 $ length records
         , testCase "Two row report" $ do
             let headerFields =
                   [ "District"
@@ -102,8 +103,7 @@ tests =
                   , "Off. List On Time"
                   , "Club Distinguished Status"
                   ]
-                mkLine xs = BL8.pack (intercalate "," (map show xs) <> "\r\n")
-                header = mkLine headerFields
+                    :: [String]
                 row1Fields =
                   [ "112"
                   , "K"
@@ -129,6 +129,7 @@ tests =
                   , "1"
                   , ""
                   ]
+                    :: [String]
                 row2Fields =
                   [ "112"
                   , "K"
@@ -154,16 +155,20 @@ tests =
                   , "1"
                   , "S"
                   ]
+                    :: [String]
+                mkLine xs = BL8.pack $ intercalate "," (show <$> xs) <> "\r\n"
                 footer = BL8.pack "Month of May, As of 05/15/2025\r\n"
-                csv = header <> mkLine row1Fields <> mkLine row2Fields <> footer
+                csv = mconcat [mkLine headerFields, mkLine row1Fields, mkLine row2Fields, footer]
             case decodeClubReport csv of
-              Left err -> assertFailure (show err)
+              Left err -> assertFailure $ show err
               Right ClubPerformanceReport{month, dayOfRecord, records} -> do
                 month @?= YearMonth 2025 5
                 dayOfRecord @?= YearMonthDay 2025 5 15
-                assertEqual "records" 2 (length records)
-                let ClubPerformanceRecord{clubNumber, clubName} = head records
-                clubNumber @?= ClubNumber 1666
-                clubName @?= "Whangarei Toastmasters Club"
+                assertEqual "records" 2 $ length records
+                case uncons records of
+                  Just (ClubPerformanceRecord{clubNumber, clubName}, _) -> do
+                    clubNumber @?= ClubNumber 1666
+                    clubName @?= "Whangarei Toastmasters Club"
+                  Nothing -> assertFailure "decodeClubReport returns empty list"
         ]
     ]
