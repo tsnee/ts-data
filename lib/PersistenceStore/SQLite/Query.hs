@@ -105,14 +105,14 @@ metricIdParmQ = unsafeCoerce . metricIdParm
 
 buildLoadMeasurementsQuery
   :: TableName -> [ClubMetrics] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
-buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, parms)
- where
-  queriesAndParms = do
+buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, params)
+  where
+  queriesAndParams = do
     metric <- clubMetrics
     let subQuery = buildLoadMeasurementsSubQuery tableName metric startM endM
-        parm = metricIdParm metric := fromEnum metric
-    pure (subQuery, parm)
-  (subQueries, parms) = unzip queriesAndParms
+        param = metricIdParm metric := fromEnum metric
+    pure (subQuery, param)
+  (subQueries, params) = unzip queriesAndParams
   query = mconcat (intersperse " UNION ALL " subQueries) <> " ORDER BY metric_id"
 
 buildLoadMeasurementsSubQuery
