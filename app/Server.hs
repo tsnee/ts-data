@@ -13,6 +13,7 @@ import Options.Applicative
 import Servant (Proxy (..))
 import Servant.API ((:<|>) (..))
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
+import Servant.Server.StaticFiles (serveDirectoryWebApp)
 
 import AppM (runAppM)
 import Options (parseWithConf)
@@ -45,6 +46,7 @@ server =
   processClubMeasurementRequest
     :<|> processClubMetadataRequest
     :<|> processClubMetricsRequest
+    :<|> serveDirectoryWebApp "static"
 
 api :: Proxy Api
 api = Proxy

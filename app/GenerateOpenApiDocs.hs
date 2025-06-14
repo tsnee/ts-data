@@ -18,7 +18,7 @@ docsOptions =
       ( long "output-file"
           <> metavar "FILE"
           <> help "Output JSON file"
-          <> value "ts-data-openapi.json"
+          <> value "openapi.json"
           <> showDefault
       )
 
