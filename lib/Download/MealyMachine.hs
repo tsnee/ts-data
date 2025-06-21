@@ -42,6 +42,7 @@ maxFailureCount :: Int
 maxFailureCount = 5
 
 data MachineConfig = MachineConfig {district :: District, startDate :: Day, endDate :: Day, failureCount :: Int}
+  deriving Show
 
 data MachineState
   = Initial
@@ -49,6 +50,7 @@ data MachineState
   | Finished
   | Errored
   | Failed
+  deriving Show
 
 data MachineInput = Initialize MachineConfig | DownloadResult (Either Text ClubPerformanceReport)
 
@@ -59,6 +61,7 @@ data MachineOutput
   | LogWarning LogStr
   | LogError LogStr
   | Save ClubPerformanceReport
+  deriving Show
 
 step :: MachineState -> MachineInput -> (MachineState, [MachineOutput])
 step Initial (Initialize cfg) = initializeMachine cfg
@@ -90,7 +93,7 @@ tryFollowingMonth cfg descriptor = (resultState, output)
  where
   nextReportMonth = succ $ reportMonth descriptor
   YearMonth reportYear reportMonthOfYear = nextReportMonth
-  updatedProgramYear = ProgramYear $ if reportMonthOfYear == July then succ reportYear else reportYear
+  updatedProgramYear = ProgramYear $ if reportMonthOfYear < July then pred reportYear else reportYear
   nextDescriptor = descriptor{reportMonth = nextReportMonth, programYear = updatedProgramYear}
   resultState = Awaiting cfg nextDescriptor
   output =

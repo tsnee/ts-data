@@ -13,7 +13,7 @@ import Servant.API (ToHttpApiData, toUrlPiece)
 import Prelude
 
 newtype ProgramYear = ProgramYear Year
-  deriving (FromField, Generic, ToField)
+  deriving (Eq, FromField, Generic, ToField)
 instance Show ProgramYear where
   show (ProgramYear year) = mconcat ["Toastmasters year ", show year, " to ", show $ year + 1]
 instance ToHttpApiData ProgramYear where

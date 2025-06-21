@@ -22,7 +22,7 @@ data ClubPerformanceReportDescriptor = ClubPerformanceReportDescriptor
   , asOf :: !Day
   , programYear :: !ProgramYear
   }
-  deriving Show
+  deriving (Eq, Show)
 instance ToHttpApiData ClubPerformanceReportDescriptor where
   toUrlPiece ClubPerformanceReportDescriptor{district, reportMonth, asOf, programYear} =
     T.intercalate

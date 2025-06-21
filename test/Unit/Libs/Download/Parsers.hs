@@ -1,10 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Unit.Apps where
+module Unit.Libs.Download.Parsers where
 
+import Data.Bifunctor (second)
 import Data.ByteString.Lazy.Char8 qualified as BL8 (pack)
-import Data.List (intercalate, uncons)
+import Data.List (intercalate, sortBy, uncons)
+import Data.Ord (comparing)
+import Data.Text (Text)
 import Data.Time (pattern YearMonthDay)
 import Data.Time.Calendar.Month (pattern YearMonth)
 import Test.Tasty (TestTree, testGroup)
@@ -12,13 +15,25 @@ import Test.Tasty.HUnit (assertEqual, assertFailure, testCase, (@?=))
 import Prelude
 
 import Download.Parsers (decodeClubReport, parseFooter)
+import Types.ClubMeasurementResponse (Codomain (..), Series (..))
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..))
+
+sortByFirst :: [Text] -> [a] -> ([Text], [a])
+sortByFirst xs ys = unzip $ (sortBy . comparing) fst $ zip xs ys
+
+sortByDate :: [Series] -> [Series]
+sortByDate seriesList = do
+  Series{label, domain, codomain} <- seriesList
+  let (xs, ys) = case codomain of
+        IntCodomain intCodomain -> second IntCodomain $ sortByFirst domain intCodomain
+        TextCodomain textCodomain -> second TextCodomain $ sortByFirst domain textCodomain
+  pure $ Series label xs ys
 
 tests :: TestTree
 tests =
   testGroup
-    "Download"
+    "Libs.Download.Parsers"
     [ testGroup
         "parseFooter"
         [ testCase "Happy path" $ do
