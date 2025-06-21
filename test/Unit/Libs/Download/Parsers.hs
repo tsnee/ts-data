@@ -40,18 +40,18 @@ tests =
             let footer = "Month of Apr, As of 05/01/2025"
                 actual = parseFooter footer
                 expected = Right (4, YearMonthDay 2025 5 1)
-            actual @?= expected
+            expected @?= actual
         , testCase "Bad month" $ do
             let footer = "Month of , As of 05/01/2025"
                 actual = parseFooter footer
                 expected = Left $ "Could not parse month from fragment 'Month of ' of CSV footer '" <> footer <> "'."
-            actual @?= expected
+            expected @?= actual
         , testCase "Bad day" $ do
             let footer = "Month of Apr, As of 13/01/2025"
                 actual = parseFooter footer
                 expected =
                   Left $ "Could not parse date from fragment ', As of 13/01/2025' of CSV footer '" <> footer <> "'."
-            actual @?= expected
+            expected @?= actual
         ]
     , testGroup
         "decodeClubReport"
@@ -89,8 +89,8 @@ tests =
             case decodeClubReport csv of
               Left err -> assertFailure $ show err
               Right ClubPerformanceReport{month, dayOfRecord, records} -> do
-                month @?= YearMonth 2025 5
-                dayOfRecord @?= YearMonthDay 2025 5 1
+                YearMonth 2025 5 @?= month
+                YearMonthDay 2025 5 1 @?= dayOfRecord
                 assertEqual "records" 0 $ length records
         , testCase "Two row report" $ do
             let headerFields =
@@ -177,13 +177,13 @@ tests =
             case decodeClubReport csv of
               Left err -> assertFailure $ show err
               Right ClubPerformanceReport{month, dayOfRecord, records} -> do
-                month @?= YearMonth 2025 5
-                dayOfRecord @?= YearMonthDay 2025 5 15
+                YearMonth 2025 5 @?= month
+                YearMonthDay 2025 5 15 @?= dayOfRecord
                 assertEqual "records" 2 $ length records
                 case uncons records of
                   Just (ClubPerformanceRecord{clubNumber, clubName}, _) -> do
-                    clubNumber @?= ClubNumber 1666
-                    clubName @?= "Whangarei Toastmasters Club"
+                    ClubNumber 1666 @?= clubNumber
+                    "Whangarei Toastmasters Club" @?= clubName
                   Nothing -> assertFailure "decodeClubReport returns empty list"
         ]
     ]

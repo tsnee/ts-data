@@ -74,7 +74,7 @@ tests =
                           , codomain = IntCodomain [15]
                           }
                       ]
-                actual @?= expected
+                expected @?= actual
             ]
         ]
     , testGroup
@@ -84,7 +84,7 @@ tests =
             [ testCase "Empty list" $ do
                 let actual = parseNameDivision [] :: Either Text (Maybe Int, Maybe Int)
                     expected = Right (Nothing, Nothing) :: Either Text (Maybe Int, Maybe Int)
-                actual @?= expected
+                expected @?= actual
             , testCase "Name then division" $ do
                 let clubId = ClubNumber 1
                     baseDate = DbDate (YearMonthDay 2025 5 1)
@@ -95,7 +95,7 @@ tests =
                       Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate} :: Measurement Text
                     actual = parseNameDivision [name, division]
                     expected = Right (Just "Foo", Just "A")
-                actual @?= expected
+                expected @?= actual
             , testCase "Division then name" $ do
                 let clubId = ClubNumber 1
                     baseDate = DbDate (YearMonthDay 2025 5 1)
@@ -103,7 +103,7 @@ tests =
                     division = Measurement{clubId, metricId = fromEnum Division, value = "A", date = baseDate}
                     actual = parseNameDivision [division, name] :: Either Text (Maybe Text, Maybe Text)
                     expected = Right (Just "Foo", Just "A") :: Either Text (Maybe Text, Maybe Text)
-                actual @?= expected
+                expected @?= actual
             , testCase "Unexpected metrics" $ do
                 let clubId = ClubNumber 1
                     baseDate = DbDate (YearMonthDay 2025 5 1)
@@ -120,7 +120,7 @@ tests =
                           , ", value 15]"
                           ]
                         :: Either Text (Maybe Int, Maybe Int)
-                actual @?= expected
+                expected @?= actual
             , testCase "Wrong length" $ do
                 let clubId = ClubNumber 1
                     baseDate = DbDate (YearMonthDay 2025 5 1)
@@ -129,7 +129,7 @@ tests =
                     expected =
                       Left $ "Expected list length of 0 or 2, but found " <> T.show [name]
                         :: Either Text (Maybe Text, Maybe Text)
-                actual @?= expected
+                expected @?= actual
             ]
         ]
     ]

@@ -31,6 +31,6 @@ tests =
                       (YearMonthDay 2025 5 15)
                       (ProgramYear 2024)
                 expected = "clubperformance~117~05/31/2025~05/15/2025~2024-2025"
-            actual @?= expected
+            expected @?= actual
         ]
     ]

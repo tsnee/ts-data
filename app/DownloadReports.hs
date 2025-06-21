@@ -10,6 +10,17 @@ import Data.Time
   )
 import Katip (Severity (..), Verbosity (..))
 import Options.Applicative
+  ( Parser
+  , auto
+  , help
+  , long
+  , maybeReader
+  , metavar
+  , option
+  , showDefault
+  , showDefaultWith
+  , value
+  )
 import Text.Read (readMaybe)
 
 import AppM (runAppM)
@@ -23,6 +34,8 @@ import Types.District (District (..))
 data DownloadOptions = DownloadOptions
   { district :: District
   , startDay :: Day
+  , endDayM :: Maybe Day
+  , maxRequestsPerMinute :: Int
   }
 
 downloadOptions :: Parser DownloadOptions
@@ -40,17 +53,35 @@ downloadOptions =
       readDay
       ( long "start-day"
           <> metavar "YYYY-MM-DD"
-          <> help "Date to start downloading"
-          <> value (fromGregorian 2024 7 1)
+          <> help "First report to download."
+          <> value (fromGregorian 2020 7 1)
+          <> showDefault
+      )
+    <*> option
+      readMaybeDay
+      ( long "end-day"
+          <> metavar "YYYY-MM-DD"
+          <> help "Last report to download"
+          <> value Nothing
+          <> showDefaultWith (maybe "Today" show)
+      )
+    <*> option
+      auto
+      ( long "requests-per-minute"
+          <> metavar "INT"
+          <> help "Max requests to toastmasters.org in one minute"
+          <> value 1
           <> showDefault
       )
  where
+  acceptWhitespace = True
+  readDay = maybeReader (parseTimeM acceptWhitespace defaultTimeLocale "%F")
+  readMaybeDay = pure <$> readDay
   readDistrict = maybeReader (fmap District . readMaybe)
-  readDay = maybeReader (parseTimeM False defaultTimeLocale "%F")
 
 main :: IO ()
 main = do
-  (conf, DownloadOptions{district, startDay}) <-
+  (conf, DownloadOptions{district, startDay, endDayM, maxRequestsPerMinute}) <-
     parseWithConf
       Conf
         { databaseName = DatabaseName "dcp.sqlite"
@@ -62,4 +93,4 @@ main = do
       downloadOptions
   runAppM conf () $ do
     createTables
-    downloadClubPerformanceReportsFrom district startDay Nothing
+    downloadClubPerformanceReportsFrom district startDay endDayM maxRequestsPerMinute

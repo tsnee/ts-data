@@ -12,6 +12,7 @@ module Download.Shell (CsvOctetStream (..), downloadClubPerformanceReportsFrom) 
 
 import Control.Monad.Reader (ask)
 import Data.Bifunctor (first)
+import Data.Foldable (traverse_)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T (show)
 import Data.Time
@@ -32,7 +33,9 @@ import Servant.Client
   , mkClientEnv
   , runClientM
   )
+import System.CPUTime (getCPUTime)
 import UnliftIO (liftIO)
+import UnliftIO.Concurrent (threadDelay)
 import Prelude
 
 import AppM (AppM)
@@ -46,6 +49,7 @@ import Download.MealyMachine
   )
 import Download.MealyMachine qualified as MC (MachineConfig (district))
 import Download.Parsers (decodeClubReport)
+import Download.Time (calculatePauseMillis)
 import PersistenceStore.SQLite.Insert (saveReport)
 import Types.AppEnv (AppEnv (..))
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
@@ -62,14 +66,14 @@ type ClubPerformanceAPI =
     :> QueryParam "report" ClubPerformanceReportDescriptor
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
-downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> AppM ()
-downloadClubPerformanceReportsFrom district startDate Nothing = do
+downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> Int -> AppM ()
+downloadClubPerformanceReportsFrom district startDate Nothing rateLimit = do
   endDate <- today
-  downloadClubPerformanceReportsFrom district startDate $ Just endDate
-downloadClubPerformanceReportsFrom district startDate (Just endDate) = do
+  downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit
+downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit = do
   servantEnv <- mkServantClientEnv
   let (fsm, actions) = initializeMachine $ MachineConfig{MC.district, startDate, endDate, failureCount = 0}
-  interpret servantEnv fsm actions
+  interpret servantEnv rateLimit fsm actions
 
 mkServantClientEnv :: AppM ClientEnv
 mkServantClientEnv = do
@@ -81,8 +85,9 @@ mkServantClientEnv = do
   manager <- liftIO $ newManager managerSettings
   pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
 
-interpret :: ClientEnv -> MachineState -> [MachineOutput] -> AppM ()
-interpret clientEnv fsm actions = do
+interpret :: ClientEnv -> Int -> MachineState -> [MachineOutput] -> AppM ()
+interpret clientEnv rateLimit fsm actions = do
+  startPicos <- liftIO getCPUTime
   sequence_ $ performActions actions
   case fsm of
     Initial -> logFM ErrorS "Programmer error - Download state machine used incorrectly."
@@ -91,8 +96,13 @@ interpret clientEnv fsm actions = do
     Finished -> logFM NoticeS "Downloads succeeded."
     Awaiting _ descriptor -> do
       result <- download clientEnv descriptor
+      endPicos <- liftIO getCPUTime
+      pause rateLimit startPicos endPicos
       let (nextState, nextActions) = step fsm $ DownloadResult $ first T.show result
-      interpret clientEnv nextState nextActions
+      interpret clientEnv rateLimit nextState nextActions
+
+pause :: Int -> Integer -> Integer -> AppM ()
+pause requestsPerMinute startPicos endPicos = traverse_ threadDelay $ calculatePauseMillis requestsPerMinute startPicos endPicos
 
 performActions :: [MachineOutput] -> [AppM ()]
 performActions actions = do

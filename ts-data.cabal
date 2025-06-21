@@ -64,6 +64,7 @@ library
         Download.MealyMachine,
         Download.Parsers,
         Download.Shell,
+        Download.Time,
         PersistenceStore.Analyzer,
         PersistenceStore.FieldParsers,
         PersistenceStore.Measurement,
@@ -275,6 +276,7 @@ test-suite ts-data-test
         System.Persistence,
         Unit.Libs.Download.MealyMachine,
         Unit.Libs.Download.Parsers,
+        Unit.Libs.Download.Time,
         Unit.Libs.Serve,
         Unit.Libs.Types.ClubPerformanceReportDescriptor
 

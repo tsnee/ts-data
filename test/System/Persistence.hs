@@ -39,7 +39,7 @@ tests =
               saveClubIfNecessary conn $ ClubNumber 1
               traverse_ (saveIntMeasurement conn) testMeasurements
               actual <- loadIntMeasurementsWithConnection conn (ClubNumber 1) [toEnum 1] Nothing Nothing
-              liftIO $ actual @?= expected
+              liftIO $ expected @?= actual
         , appConnTestCase "persistenceStore" "Everything saved can be loaded when date range is specified" $ \conn ->
             do
               createTablesWithConnection conn
@@ -62,7 +62,7 @@ tests =
                   [toEnum 1]
                   (Just (YearMonthDay 2024 12 31))
                   (Just (YearMonthDay 2025 2 1))
-              liftIO $ actual @?= expected
+              liftIO $ expected @?= actual
         , appConnTestCase "persistenceStore" "Date ranges can be loaded" $ \conn ->
             do
               createTablesWithConnection conn
@@ -85,7 +85,7 @@ tests =
                   [toEnum 1]
                   (Just (YearMonthDay 2025 1 4))
                   (Just (YearMonthDay 2025 1 6))
-              liftIO $ actual @?= expected
+              liftIO $ expected @?= actual
         , appConnTestCase "persistenceStore" "No start date specified" $ \conn ->
             do
               createTablesWithConnection conn
@@ -108,7 +108,7 @@ tests =
                   [toEnum 1]
                   Nothing
                   (Just (YearMonthDay 2025 1 6))
-              liftIO $ actual @?= expected
+              liftIO $ expected @?= actual
         , appConnTestCase "persistenceStore" "No end date specified" $ \conn ->
             do
               createTablesWithConnection conn
@@ -131,6 +131,6 @@ tests =
                   [toEnum 1]
                   (Just (YearMonthDay 2025 1 4))
                   Nothing
-              liftIO $ actual @?= expected
+              liftIO $ expected @?= actual
         ]
     ]
