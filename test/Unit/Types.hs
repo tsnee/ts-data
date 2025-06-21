@@ -6,8 +6,8 @@ module Unit.Types where
 import Data.Time (pattern YearMonthDay)
 import Data.Time.Calendar.Month (pattern YearMonth)
 import Servant.API (toUrlPiece)
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, (@?=))
 import Prelude
 
 import Types.ClubPerformanceReportDescriptor (ClubPerformanceReportDescriptor (..))

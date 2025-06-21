@@ -2,12 +2,11 @@
 
 module Types.Format (Format (..)) where
 
+import Data.Text qualified as T (show)
 import Servant.API (ToHttpApiData, toUrlPiece)
-import TextShow (FromStringShow (..), TextShow, showt)
 import Prelude
 
 data Format = CSV | PDF
-  deriving Show
-  deriving TextShow via FromStringShow Format
+  deriving (Eq, Show)
 instance ToHttpApiData Format where
-  toUrlPiece = showt
+  toUrlPiece = T.show

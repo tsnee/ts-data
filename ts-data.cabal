@@ -273,7 +273,6 @@ test-suite ts-data-test
     other-modules:
         System.AppTestCase,
         System.Persistence,
-        Unit.Apps,
         Unit.Libs,
         Unit.Types,
         Unit.MealyMachine

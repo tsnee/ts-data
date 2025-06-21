@@ -42,6 +42,7 @@ maxFailureCount :: Int
 maxFailureCount = 5
 
 data MachineConfig = MachineConfig {district :: District, startDate :: Day, endDate :: Day, failureCount :: Int}
+  deriving Show
 
 data MachineState
   = Initial
@@ -49,6 +50,7 @@ data MachineState
   | Finished
   | Errored
   | Failed
+  deriving Show
 
 data MachineInput = Initialize MachineConfig | DownloadResult (Either Text ClubPerformanceReport)
 
@@ -59,6 +61,7 @@ data MachineOutput
   | LogWarning LogStr
   | LogError LogStr
   | Save ClubPerformanceReport
+  deriving Show
 
 step :: MachineState -> MachineInput -> (MachineState, [MachineOutput])
 step Initial (Initialize cfg) = initializeMachine cfg
