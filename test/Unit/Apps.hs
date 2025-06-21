@@ -11,7 +11,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertEqual, assertFailure, testCase, (@?=))
 import Prelude
 
-import Download (decodeClubReport, parseFooter)
+import Download.Parsers (decodeClubReport, parseFooter)
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..))
 

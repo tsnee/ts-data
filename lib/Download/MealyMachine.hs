@@ -1,0 +1,168 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PatternSynonyms #-}
+
+{- |
+Module      : Download.MealyMachine
+Description : Pure state machine functions for downloading club performance reports.
+Maintainer  : tomsnee@gmail.com
+-}
+module Download.MealyMachine
+  ( MachineConfig (..)
+  , MachineInput (..)
+  , MachineOutput (..)
+  , MachineState (..)
+  , formatDay
+  , initializeMachine
+  , step
+  ) where
+
+import Data.Text (Text)
+import Data.Text qualified as T (pack, show)
+import Data.Time (Day (..), dayPeriod, pattern July)
+import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
+import Data.Time.Format (defaultTimeLocale, formatTime)
+import Katip (LogStr (..), ls)
+import Prelude
+
+import Types.ClubPerformanceReport (ClubPerformanceReport (..))
+import Types.ClubPerformanceReportDescriptor
+  ( ClubPerformanceReportDescriptor
+      ( ClubPerformanceReportDescriptor
+      , asOf
+      , format
+      , programYear
+      , reportMonth
+      )
+  )
+import Types.District (District (..))
+import Types.Format (Format (CSV))
+import Types.ProgramYear (ProgramYear (..))
+
+maxFailureCount :: Int
+maxFailureCount = 5
+
+data MachineConfig = MachineConfig {district :: District, startDate :: Day, endDate :: Day, failureCount :: Int}
+
+data MachineState
+  = Initial
+  | Awaiting MachineConfig ClubPerformanceReportDescriptor
+  | Finished
+  | Errored
+  | Failed
+
+data MachineInput = Initialize MachineConfig | DownloadResult (Either Text ClubPerformanceReport)
+
+data MachineOutput
+  = LogDebug LogStr
+  | LogInfo LogStr
+  | LogNotice LogStr
+  | LogWarning LogStr
+  | LogError LogStr
+  | Save ClubPerformanceReport
+
+step :: MachineState -> MachineInput -> (MachineState, [MachineOutput])
+step Initial (Initialize cfg) = initializeMachine cfg
+step (Awaiting cfg descriptor) (DownloadResult (Right report@ClubPerformanceReport{records = []}))
+  | dayOfRecord report >= endDate cfg = finish
+  | dayPeriod (dayOfRecord report) > month report = tryFollowingMonth cfg descriptor
+  | otherwise = giveUpOnDay cfg descriptor
+step (Awaiting cfg descriptor) (DownloadResult (Right report)) = saveReportAndIncrementDay cfg descriptor report
+step (Awaiting cfg descriptor) (DownloadResult (Left err)) = retryWithLimits cfg descriptor err
+step _ _ = (Failed, [LogError "Bad FSM input."])
+
+initializeMachine :: MachineConfig -> (MachineState, [MachineOutput])
+initializeMachine cfg = (resultState, output)
+ where
+  reportDate = startDate cfg
+  reportMonth = pred $ dayPeriod reportDate
+  YearMonth reportYear reportMonthOfYear = reportMonth
+  programYear = ProgramYear $ if reportMonthOfYear < July then pred reportYear else reportYear
+  descriptor = ClubPerformanceReportDescriptor CSV (district cfg) reportMonth reportDate programYear
+  resultState = Awaiting cfg descriptor
+  output = [LogNotice "Mealy machine initialized."]
+
+finish :: (MachineState, [MachineOutput])
+finish = (Finished, [LogNotice "Finished."])
+
+tryFollowingMonth
+  :: MachineConfig -> ClubPerformanceReportDescriptor -> (MachineState, [MachineOutput])
+tryFollowingMonth cfg descriptor = (resultState, output)
+ where
+  nextReportMonth = succ $ reportMonth descriptor
+  YearMonth reportYear reportMonthOfYear = nextReportMonth
+  updatedProgramYear = ProgramYear $ if reportMonthOfYear == July then succ reportYear else reportYear
+  nextDescriptor = descriptor{reportMonth = nextReportMonth, programYear = updatedProgramYear}
+  resultState = Awaiting cfg nextDescriptor
+  output =
+    [ LogDebug $
+        ls $
+          mconcat
+            [ "No records found for "
+            , formatMonth $ reportMonth descriptor
+            , " on "
+            , formatDay $ asOf descriptor
+            , " - assume month-end reporting completed the previous day."
+            ]
+    ]
+
+giveUpOnDay :: MachineConfig -> ClubPerformanceReportDescriptor -> (MachineState, [MachineOutput])
+giveUpOnDay cfg descriptor = (resultState, output)
+ where
+  nextFailureCount = succ $ failureCount cfg
+  errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive failures."]
+  warningMsg =
+    ls $
+      mconcat
+        ["After ", T.show nextFailureCount, " errors downloading ", T.show descriptor, ", trying next day."]
+  (resultState, output) =
+    if nextFailureCount >= maxFailureCount
+      then (Errored, [LogError errorMsg])
+      else
+        let nextCfg = cfg{failureCount = nextFailureCount}
+            nextReportDate = succ $ asOf descriptor
+            nextDescriptor = descriptor{asOf = nextReportDate}
+         in (Awaiting nextCfg nextDescriptor, [LogWarning warningMsg])
+
+saveReportAndIncrementDay
+  :: MachineConfig
+  -> ClubPerformanceReportDescriptor
+  -> ClubPerformanceReport
+  -> (MachineState, [MachineOutput])
+saveReportAndIncrementDay cfg descriptor report = (resultState, output)
+ where
+  nextReportDate = succ $ asOf descriptor
+  nextDescriptor = descriptor{asOf = nextReportDate}
+  resultState = Awaiting cfg{failureCount = 0} nextDescriptor
+  infoMsg =
+    ls $
+      mconcat
+        [ "Downloaded "
+        , T.show (format descriptor)
+        , " with "
+        , T.show (length (records report))
+        , " records for "
+        , T.show (formatDay (dayOfRecord report))
+        , "."
+        ]
+  noticeMsg = ls $ "Saved " <> T.show descriptor <> "."
+  output = [LogInfo infoMsg, Save report, LogNotice noticeMsg]
+
+retryWithLimits
+  :: MachineConfig -> ClubPerformanceReportDescriptor -> Text -> (MachineState, [MachineOutput])
+retryWithLimits cfg descriptor err = (resultState, output)
+ where
+  nextFailureCount = succ $ failureCount cfg
+  warningMsg = ls $ mconcat ["Failed to download ", T.show descriptor, ", retrying."]
+  errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive failures."]
+  (resultState, output) =
+    if nextFailureCount < maxFailureCount
+      then
+        (Awaiting cfg{failureCount = nextFailureCount} descriptor, [LogWarning warningMsg])
+      else
+        (Errored, [LogError (ls err), LogError errorMsg])
+
+formatMonth :: Month -> Text
+formatMonth = T.pack . formatTime defaultTimeLocale "%B %Y"
+
+formatDay :: Day -> Text
+formatDay = T.pack . formatTime defaultTimeLocale "%B %-d, %Y"

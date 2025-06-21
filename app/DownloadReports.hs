@@ -13,7 +13,7 @@ import Options.Applicative
 import Text.Read (readMaybe)
 
 import AppM (runAppM)
-import Download (downloadClubPerformanceStarting)
+import Download.Shell (downloadClubPerformanceReportsFrom)
 import Options (parseWithConf)
 import PersistenceStore.SQLite.Tables (createTables)
 import Types.Conf (Conf (..))
@@ -62,4 +62,4 @@ main = do
       downloadOptions
   runAppM conf () $ do
     createTables
-    downloadClubPerformanceStarting district startDay
+    downloadClubPerformanceReportsFrom district startDay Nothing
