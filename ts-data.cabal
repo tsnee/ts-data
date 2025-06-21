@@ -275,7 +275,8 @@ test-suite ts-data-test
         System.Persistence,
         Unit.Apps,
         Unit.Libs,
-        Unit.Types
+        Unit.Types,
+        Unit.MealyMachine
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
