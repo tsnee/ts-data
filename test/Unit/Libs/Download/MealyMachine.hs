@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Unit.MealyMachine where
+module Unit.Libs.Download.MealyMachine where
 
 import Data.Time (Day, dayPeriod, pattern YearMonthDay)
 import Data.Time.Calendar.Month (pattern YearMonth)
@@ -94,46 +94,81 @@ tests :: TestTree
 tests =
   testGroup
     "Download.MealyMachine"
-    [ testCase "formatDay" $ do
+    [ testCase "Formats days as expected" $ do
         formatDay (YearMonthDay 2025 7 4) @?= "July 4, 2025"
-    , testCase "initializeMachine" $ do
-        let cfg = mkCfg (YearMonthDay 2025 5 15) (YearMonthDay 2025 5 20)
+    , testCase "initializeMachine handles start date and reporting month in same program year" $ do
+        let start = YearMonthDay 2024 8 30
+            end = YearMonthDay 2024 9 1
+            cfg = mkCfg start end
             (state, outs) = initializeMachine cfg
-            expectedDescriptor =
+            expected =
               CPRD.ClubPerformanceReportDescriptor
                 CSV
                 (District 1)
-                (YearMonth 2025 4)
-                (YearMonthDay 2025 5 15)
+                (YearMonth 2024 7)
+                start
                 (ProgramYear 2024)
         case state of
-          Awaiting cfg' descriptor -> do
+          Awaiting cfg' actual -> do
             MC.district cfg' @?= District 1
-            MC.startDate cfg' @?= YearMonthDay 2025 5 15
-            MC.endDate cfg' @?= YearMonthDay 2025 5 20
+            MC.startDate cfg' @?= start
+            MC.endDate cfg' @?= end
             MC.failureCount cfg' @?= 0
-            descriptor @?= expectedDescriptor
+            actual @?= expected
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
         assertBool "notice" $ expectNotice outs
-    , testCase "finish on end date" $ do
-        case initializeMachine $ mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 10) of
+    , testCase "Handles start date and reporting month in different program years" $ do
+        let start = YearMonthDay 2024 7 1
+            end = YearMonthDay 2024 7 31
+            cfg = mkCfg start end
+            (state, outs) = initializeMachine cfg
+            expected =
+              CPRD.ClubPerformanceReportDescriptor
+                CSV
+                (District 1)
+                (YearMonth 2024 6)
+                start
+                (ProgramYear 2023)
+        case state of
+          Awaiting cfg' actual -> do
+            MC.district cfg' @?= District 1
+            MC.startDate cfg' @?= start
+            MC.endDate cfg' @?= end
+            MC.failureCount cfg' @?= 0
+            actual @?= expected
+          unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
+        assertBool "notice" $ expectNotice outs
+    , testCase "Finishes on correct end date" $ do
+        let start = YearMonthDay 2024 8 30
+            cfg = mkCfg start start
+        case initializeMachine cfg of
           (Awaiting cfg' desc, _) -> do
-            let day = YearMonthDay 2025 5 10
-                report = CPR.ClubPerformanceReport day (dayPeriod day) []
+            let report = CPR.ClubPerformanceReport start (dayPeriod start) []
                 (nextState, outs) = step (Awaiting cfg' desc) (DownloadResult (Right report))
             case nextState of
               Finished -> pure ()
               unexpected -> assertFailure $ "Expected Finished, not " <> show unexpected
             assertBool "notice" $ expectNotice outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
-    , testCase "advance to next month" $ do
-        case initializeMachine $ mkCfg (YearMonthDay 2025 5 15) (YearMonthDay 2025 6 30) of
+    , testCase "Advances to next month in same program year" $ do
+        case initializeMachine $ mkCfg (YearMonthDay 2025 5 15) (YearMonthDay 2025 5 30) of
           (Awaiting cfg' desc, _) -> do
-            let report = CPR.ClubPerformanceReport (YearMonthDay 2025 6 1) (CPRD.reportMonth desc) []
+            let report = CPR.ClubPerformanceReport (YearMonthDay 2025 5 15) (YearMonth 2025 4) []
                 (nextState, outs) = step (Awaiting cfg' desc) (DownloadResult (Right report))
-                expectedDescriptor = desc{CPRD.reportMonth = YearMonth 2025 5, CPRD.programYear = ProgramYear 2025}
+                expected = desc{CPRD.reportMonth = YearMonth 2025 5, CPRD.programYear = ProgramYear 2024}
             case nextState of
-              Awaiting _ d -> d @?= expectedDescriptor
+              Awaiting _ actual -> actual @?= expected
+              unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
+            assertBool "debug" $ expectDebug outs
+          unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
+    , testCase "Advances to next month in next program year" $ do
+        case initializeMachine $ mkCfg (YearMonthDay 2025 7 30) (YearMonthDay 2025 7 31) of
+          (Awaiting cfg' desc, _) -> do
+            let report = CPR.ClubPerformanceReport (YearMonthDay 2025 7 30) (YearMonth 2025 6) []
+                (nextState, outs) = step (Awaiting cfg' desc) (DownloadResult (Right report))
+                expected = desc{CPRD.reportMonth = YearMonth 2025 7, CPRD.programYear = ProgramYear 2025}
+            case nextState of
+              Awaiting _ actual -> actual @?= expected
               unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
             assertBool "debug" $ expectDebug outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected

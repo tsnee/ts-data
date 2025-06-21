@@ -273,9 +273,10 @@ test-suite ts-data-test
     other-modules:
         System.AppTestCase,
         System.Persistence,
-        Unit.Libs,
-        Unit.Types,
-        Unit.MealyMachine
+        Unit.Libs.Download.MealyMachine,
+        Unit.Libs.Download.Parsers,
+        Unit.Libs.Serve,
+        Unit.Libs.Types.ClubPerformanceReportDescriptor
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

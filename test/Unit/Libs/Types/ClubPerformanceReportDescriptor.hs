@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Unit.Types where
+module Unit.Libs.Types.ClubPerformanceReportDescriptor where
 
 import Data.Time (pattern YearMonthDay)
 import Data.Time.Calendar.Month (pattern YearMonth)
@@ -18,7 +18,7 @@ import Types.ProgramYear (ProgramYear (..))
 tests :: TestTree
 tests =
   testGroup
-    "Types.ClubPerformanceReportDescriptor"
+    "Unit.Libs.Types.ClubPerformanceReportDescriptor"
     [ testGroup
         "toUrlPiece"
         [ testCase "District 117 on 5/15/2025" $ do

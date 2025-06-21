@@ -93,7 +93,7 @@ tryFollowingMonth cfg descriptor = (resultState, output)
  where
   nextReportMonth = succ $ reportMonth descriptor
   YearMonth reportYear reportMonthOfYear = nextReportMonth
-  updatedProgramYear = ProgramYear $ if reportMonthOfYear == July then succ reportYear else reportYear
+  updatedProgramYear = ProgramYear $ if reportMonthOfYear < July then pred reportYear else reportYear
   nextDescriptor = descriptor{reportMonth = nextReportMonth, programYear = updatedProgramYear}
   resultState = Awaiting cfg nextDescriptor
   output =
