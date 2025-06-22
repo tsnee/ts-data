@@ -38,10 +38,8 @@ import Types.District (District (..))
 import Types.Format (Format (CSV))
 import Types.ProgramYear (ProgramYear (..))
 
-maxFailureCount :: Int
-maxFailureCount = 5
-
-data MachineConfig = MachineConfig {district :: District, startDate :: Day, endDate :: Day, failureCount :: Int}
+data MachineConfig = MachineConfig
+  {district :: District, startDate :: Day, endDate :: Day, maxFailures :: Int, failureCount :: Int}
   deriving Show
 
 data MachineState
@@ -119,7 +117,7 @@ giveUpOnDay cfg descriptor = (resultState, output)
   errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive empty reports."]
   warningMsg = ls $ mconcat ["After downloading an empty report for ", T.show descriptor, ", trying next day."]
   (resultState, output) =
-    if nextFailureCount >= maxFailureCount
+    if nextFailureCount >= maxFailures cfg
       then (Errored, [LogError errorMsg])
       else
         let nextCfg = cfg{failureCount = nextFailureCount}
@@ -148,8 +146,7 @@ saveReportAndIncrementDay cfg descriptor report = (resultState, output)
         , formatDay (dayOfRecord report)
         , "."
         ]
-  noticeMsg = ls $ "Saved " <> T.show descriptor <> "."
-  output = [LogInfo infoMsg, Save report, LogNotice noticeMsg]
+  output = [LogInfo infoMsg, Save report]
 
 retryWithLimits
   :: MachineConfig -> ClubPerformanceReportDescriptor -> Text -> (MachineState, [MachineOutput])
@@ -159,7 +156,7 @@ retryWithLimits cfg descriptor err = (resultState, output)
   warningMsg = ls $ mconcat ["Failed to download ", T.show descriptor, ", retrying."]
   errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive failures."]
   (resultState, output) =
-    if nextFailureCount < maxFailureCount
+    if nextFailureCount < maxFailures cfg
       then
         (Awaiting cfg{failureCount = nextFailureCount} descriptor, [LogWarning warningMsg])
       else

@@ -14,11 +14,8 @@ import Control.Monad.Reader (ask)
 import Data.Bifunctor (first)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T (show)
-import Data.Time
-  ( Day (..)
-  , getCurrentTime
-  , utctDay
-  )
+import Data.Time (Day (..), utctDay)
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import Katip (Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
@@ -32,7 +29,6 @@ import Servant.Client
   , mkClientEnv
   , runClientM
   )
-import System.CPUTime (getCPUTime)
 import UnliftIO (liftIO)
 import UnliftIO.Concurrent (threadDelay)
 import Prelude
@@ -65,13 +61,13 @@ type ClubPerformanceAPI =
     :> QueryParam "report" ClubPerformanceReportDescriptor
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
-downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> Int -> AppM ()
-downloadClubPerformanceReportsFrom district startDate Nothing rateLimit = do
+downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> Int -> Int -> AppM ()
+downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxFailures = do
   endDate <- today
-  downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit
-downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit = do
+  downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxFailures
+downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxFailures = do
   servantEnv <- mkServantClientEnv
-  let (fsm, actions) = initializeMachine $ MachineConfig{MC.district, startDate, endDate, failureCount = 0}
+  let (fsm, actions) = initializeMachine $ MachineConfig{MC.district, startDate, endDate, maxFailures, failureCount = 0}
   interpret servantEnv rateLimit fsm actions
 
 mkServantClientEnv :: AppM ClientEnv
@@ -86,26 +82,27 @@ mkServantClientEnv = do
 
 interpret :: ClientEnv -> Int -> MachineState -> [MachineOutput] -> AppM ()
 interpret clientEnv rateLimit fsm actions = do
-  startPicos <- liftIO getCPUTime
+  startPicos <- liftIO getCurrentTime
   sequence_ $ performActions actions
   case fsm of
     Initial -> logFM ErrorS "Programmer error - Download state machine used incorrectly."
-    Errored -> logFM ErrorS "Programmer error - Download state machine given incorrect input."
-    Failed -> logFM ErrorS "Failed to download all requested reports."
-    Finished -> logFM NoticeS "Downloads succeeded."
+    Failed -> logFM ErrorS "Programmer error - Download state machine given incorrect input."
+    Errored -> logFM ErrorS "Too many failures, exiting."
+    Finished -> logFM NoticeS "Execution complete."
     Awaiting _ descriptor -> do
       result <- download clientEnv descriptor
-      endPicos <- liftIO getCPUTime
+      endPicos <- liftIO getCurrentTime
       pause rateLimit startPicos endPicos
       let (nextState, nextActions) = step fsm $ DownloadResult $ first T.show result
       interpret clientEnv rateLimit nextState nextActions
 
-pause :: Int -> Integer -> Integer -> AppM ()
+pause :: Int -> UTCTime -> UTCTime -> AppM ()
 pause requestsPerMinute startPicos endPicos =
   case calculatePauseMicros requestsPerMinute startPicos endPicos of
-    Nothing -> logFM DebugS "No pause necessary."
+    Nothing ->
+      logFM InfoS "No pause necessary."
     Just p -> do
-      logFM DebugS $ ls $ "Pausing " <> show p <> " microseconds."
+      logFM InfoS $ ls $ "Pausing " <> show p <> " microseconds."
       liftIO $ threadDelay p
 
 performActions :: [MachineOutput] -> [AppM ()]
@@ -117,7 +114,11 @@ performActions actions = do
     LogNotice str -> pure $ logFM NoticeS str
     LogWarning str -> pure $ logFM WarningS str
     LogError str -> pure $ logFM ErrorS str
-    Save report -> pure $ saveReport report
+    Save report -> pure $ do
+      saveReport report
+      logFM NoticeS $
+        ls $
+          mconcat ["Saved ", show (length (records report)), " records for ", show (dayOfRecord report), "."]
 
 newtype CsvOctetStream = CsvOctetStream OctetStream
   deriving Accept via OctetStream

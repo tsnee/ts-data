@@ -1,28 +1,32 @@
 module Unit.Libs.Download.Time where
 
+import Data.Maybe (fromMaybe)
+import Data.Time (NominalDiffTime, UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 import Prelude
 
 import Download.Time (calculatePauseMicros)
 
-secondsPerMinute :: Integer
-secondsPerMinute = 60
+seconds :: Int -> NominalDiffTime
+seconds = realToFrac
 
-millisPerSecond :: Integer
-millisPerSecond = 1000
+milliseconds :: Int -> NominalDiffTime
+milliseconds ms = seconds $ ms * 1000
 
-microsPerMilli :: Integer
-microsPerMilli = 1000
+microseconds :: Int -> NominalDiffTime
+microseconds us = seconds $ us * 1000000
 
-microsPerSecond :: Integer
-microsPerSecond = microsPerMilli * millisPerSecond
+picoseconds :: Int -> NominalDiffTime
+picoseconds ps = seconds $ ps * 1000000000000
 
-picosPerMicro :: Integer
-picosPerMicro = 1000
+baseTime :: UTCTime
+baseTime =
+  fromMaybe (error "bad time format") $
+    parseTimeM True defaultTimeLocale "%Y-%m-%d %H:%M:%S" "2025-06-04 12:34:56"
 
-picosPerSecond :: Integer
-picosPerSecond = picosPerMicro * microsPerSecond
+elapsed :: a -> (a -> NominalDiffTime) -> UTCTime
+elapsed x f = addUTCTime (f x) baseTime
 
 tests :: TestTree
 tests =
@@ -31,39 +35,39 @@ tests =
     [ testGroup
         "calculatePause"
         [ testCase "One instantaneous request per minute needs 60M micros" $ do
-            let actual = calculatePauseMicros 1 0 0
-                expected = pure $ fromIntegral $ 60 * microsPerSecond
+            let actual = calculatePauseMicros 1 baseTime $ elapsed 0 picoseconds
+                expected = pure 60000000
             actual @?= expected
         , testCase "Four instantaneous requests per minute need 15M micros" $ do
-            let actual = calculatePauseMicros 4 0 0
-                expected = pure $ fromIntegral $ 15 * microsPerSecond
+            let actual = calculatePauseMicros 4 baseTime $ elapsed 0 picoseconds
+                expected = pure 15000000
             actual @?= expected
         , testCase "Six 10s requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 6 0 $ 10 * picosPerSecond
+            let actual = calculatePauseMicros 6 baseTime $ elapsed 10 seconds
                 expected = Nothing
             actual @?= expected
         , testCase "Sixty 1s requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 60 0 $ 1 * picosPerSecond
+            let actual = calculatePauseMicros 60 baseTime $ elapsed 1 seconds
                 expected = Nothing
             actual @?= expected
         , testCase "Fifty 1s requests per minute need 200ms" $ do
-            let actual = calculatePauseMicros 50 0 $ 1 * picosPerSecond
-                expected = pure $ fromIntegral $ 200 * microsPerMilli
+            let actual = calculatePauseMicros 50 baseTime $ elapsed 1 seconds
+                expected = pure 200000
             actual @?= expected
         , testCase "Five 10s requests per minute need 2s" $ do
-            let actual = calculatePauseMicros 5 0 $ 10 * picosPerSecond
-                expected = pure $ fromIntegral $ 2 * microsPerSecond
+            let actual = calculatePauseMicros 5 baseTime $ elapsed 10 seconds
+                expected = pure 2000000
             actual @?= expected
         , testCase "Thirty 2s requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 30 0 $ 2 * picosPerSecond
+            let actual = calculatePauseMicros 30 baseTime $ elapsed 2 seconds
                 expected = Nothing
             actual @?= expected
         , testCase "Three hundred 200ms requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 300 0 $ 200 * picosPerMicro * microsPerMilli
+            let actual = calculatePauseMicros 300 baseTime $ elapsed 200 milliseconds
                 expected = Nothing
             actual @?= expected
         , testCase "Two 25s requests per minute need 5M micros" $ do
-            let actual = calculatePauseMicros 2 0 $ 25 * picosPerSecond
+            let actual = calculatePauseMicros 2 baseTime $ elapsed 25 seconds
                 expected = pure 5000000
             actual @?= expected
         ]

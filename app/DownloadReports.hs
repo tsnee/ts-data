@@ -37,6 +37,7 @@ data DownloadOptions = DownloadOptions
   , startDay :: Day
   , endDayM :: Maybe Day
   , maxRequestsPerMinute :: Int
+  , maxFailures :: Int
   }
 
 downloadOptions :: Parser DownloadOptions
@@ -78,6 +79,15 @@ downloadOptions =
           <> value 1
           <> showDefault
       )
+    <*> option
+      auto
+      ( short 'm'
+          <> long "max-failures"
+          <> metavar "INT"
+          <> help "Max number of consecutive empty reports to download before giving up"
+          <> value 10
+          <> showDefault
+      )
  where
   acceptWhitespace = True
   readDay = maybeReader (parseTimeM acceptWhitespace defaultTimeLocale "%F")
@@ -86,7 +96,7 @@ downloadOptions =
 
 main :: IO ()
 main = do
-  (conf, DownloadOptions{district, startDay, endDayM, maxRequestsPerMinute}) <-
+  (conf, DownloadOptions{district, startDay, endDayM, maxRequestsPerMinute, maxFailures}) <-
     parseWithConf
       Conf
         { databaseName = DatabaseName "dcp.sqlite"
@@ -98,4 +108,4 @@ main = do
       downloadOptions
   runAppM conf () $ do
     createTables
-    downloadClubPerformanceReportsFrom district startDay endDayM maxRequestsPerMinute
+    downloadClubPerformanceReportsFrom district startDay endDayM maxRequestsPerMinute maxFailures

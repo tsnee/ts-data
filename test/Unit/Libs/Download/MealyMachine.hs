@@ -97,6 +97,7 @@ mkCfg start end =
     { MC.district = District 1
     , MC.startDate = start
     , MC.endDate = end
+    , MC.maxFailures = 7
     , MC.failureCount = 0
     }
 
@@ -231,9 +232,10 @@ tests =
                 unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
               assertBool "warning" $ expectWarning outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
-    , testCase "Stops retrying after 5 failures" $ do
+    , testCase "Stops retrying after n failures" $ do
         let cfg = mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 5)
-            cfg' = cfg{MC.failureCount = 4}
+            MC.MachineConfig{MC.maxFailures = defaultMaxFailures} = cfg
+            cfg' = cfg{MC.failureCount = pred defaultMaxFailures}
         case initializeMachine cfg of
           (Awaiting _ desc, _) -> case step (Awaiting cfg' desc) (DownloadResult (Left "boom")) of
             (nextState, outs) -> do
