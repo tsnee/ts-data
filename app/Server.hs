@@ -31,7 +31,8 @@ serverOptions =
   ServerOptions
     <$> option
       auto
-      ( long "port"
+      ( short 'p'
+          <> long "port"
           <> metavar "INT"
           <> help "Server port"
           <> value 8080

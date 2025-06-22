@@ -12,7 +12,6 @@ module Download.Shell (CsvOctetStream (..), downloadClubPerformanceReportsFrom) 
 
 import Control.Monad.Reader (ask)
 import Data.Bifunctor (first)
-import Data.Foldable (traverse_)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T (show)
 import Data.Time
@@ -49,7 +48,7 @@ import Download.MealyMachine
   )
 import Download.MealyMachine qualified as MC (MachineConfig (district))
 import Download.Parsers (decodeClubReport)
-import Download.Time (calculatePauseMillis)
+import Download.Time (calculatePauseMicros)
 import PersistenceStore.SQLite.Insert (saveReport)
 import Types.AppEnv (AppEnv (..))
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
@@ -102,7 +101,12 @@ interpret clientEnv rateLimit fsm actions = do
       interpret clientEnv rateLimit nextState nextActions
 
 pause :: Int -> Integer -> Integer -> AppM ()
-pause requestsPerMinute startPicos endPicos = traverse_ threadDelay $ calculatePauseMillis requestsPerMinute startPicos endPicos
+pause requestsPerMinute startPicos endPicos =
+  case calculatePauseMicros requestsPerMinute startPicos endPicos of
+    Nothing -> logFM DebugS "No pause necessary."
+    Just p -> do
+      logFM DebugS $ ls $ "Pausing " <> show p <> " microseconds."
+      liftIO $ threadDelay p
 
 performActions :: [MachineOutput] -> [AppM ()]
 performActions actions = do

@@ -66,10 +66,12 @@ data MachineOutput
 step :: MachineState -> MachineInput -> (MachineState, [MachineOutput])
 step Initial (Initialize cfg) = initializeMachine cfg
 step (Awaiting cfg descriptor) (DownloadResult (Right report@ClubPerformanceReport{records = []}))
-  | dayOfRecord report >= endDate cfg = finish
+  | dayOfRecord report >= endDate cfg = finish report
   | dayPeriod (dayOfRecord report) > month report = tryFollowingMonth cfg descriptor
   | otherwise = giveUpOnDay cfg descriptor
-step (Awaiting cfg descriptor) (DownloadResult (Right report)) = saveReportAndIncrementDay cfg descriptor report
+step (Awaiting cfg descriptor) (DownloadResult (Right report))
+  | dayOfRecord report >= endDate cfg = finish report
+  | otherwise = saveReportAndIncrementDay cfg descriptor report
 step (Awaiting cfg descriptor) (DownloadResult (Left err)) = retryWithLimits cfg descriptor err
 step _ _ = (Failed, [LogError "Bad FSM input."])
 
@@ -84,8 +86,10 @@ initializeMachine cfg = (resultState, output)
   resultState = Awaiting cfg descriptor
   output = [LogNotice "Mealy machine initialized."]
 
-finish :: (MachineState, [MachineOutput])
-finish = (Finished, [LogNotice "Finished."])
+finish :: ClubPerformanceReport -> (MachineState, [MachineOutput])
+finish result = case result of
+  ClubPerformanceReport{records = []} -> (Finished, [LogNotice "Finished, nothing to save for the last day."])
+  report -> (Finished, [Save report, LogNotice "Finished."])
 
 tryFollowingMonth
   :: MachineConfig -> ClubPerformanceReportDescriptor -> (MachineState, [MachineOutput])
@@ -112,11 +116,8 @@ giveUpOnDay :: MachineConfig -> ClubPerformanceReportDescriptor -> (MachineState
 giveUpOnDay cfg descriptor = (resultState, output)
  where
   nextFailureCount = succ $ failureCount cfg
-  errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive failures."]
-  warningMsg =
-    ls $
-      mconcat
-        ["After ", T.show nextFailureCount, " errors downloading ", T.show descriptor, ", trying next day."]
+  errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive empty reports."]
+  warningMsg = ls $ mconcat ["After downloading an empty report for ", T.show descriptor, ", trying next day."]
   (resultState, output) =
     if nextFailureCount >= maxFailureCount
       then (Errored, [LogError errorMsg])
@@ -144,7 +145,7 @@ saveReportAndIncrementDay cfg descriptor report = (resultState, output)
         , " with "
         , T.show (length (records report))
         , " records for "
-        , T.show (formatDay (dayOfRecord report))
+        , formatDay (dayOfRecord report)
         , "."
         ]
   noticeMsg = ls $ "Saved " <> T.show descriptor <> "."

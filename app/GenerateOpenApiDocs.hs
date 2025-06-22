@@ -15,7 +15,8 @@ docsOptions :: Parser DocsOptions
 docsOptions =
   DocsOptions
     <$> strOption
-      ( long "output-file"
+      ( short 'o'
+          <> long "output-file"
           <> metavar "FILE"
           <> help "Output JSON file"
           <> value "openapi.json"

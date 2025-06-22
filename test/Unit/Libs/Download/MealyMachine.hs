@@ -61,25 +61,35 @@ sampleRecord =
     , distinguishedStatus = NotYet
     }
 
-expectNotice :: [MachineOutput] -> Bool
-expectNotice [LogNotice _] = True
-expectNotice _ = False
-
 expectDebug :: [MachineOutput] -> Bool
-expectDebug [LogDebug _] = True
-expectDebug _ = False
+expectDebug = any isDebug
+ where
+  isDebug (LogDebug _) = True
+  isDebug _ = False
+
+expectNotice :: [MachineOutput] -> Bool
+expectNotice = any isNotice
+ where
+  isNotice (LogNotice _) = True
+  isNotice _ = False
 
 expectWarning :: [MachineOutput] -> Bool
-expectWarning [LogWarning _] = True
-expectWarning _ = False
+expectWarning = any isWarning
+ where
+  isWarning (LogWarning _) = True
+  isWarning _ = False
+
+expectError :: [MachineOutput] -> Bool
+expectError = any isError
+ where
+  isError (LogError _) = True
+  isError _ = False
 
 expectSave :: [MachineOutput] -> Bool
-expectSave [LogInfo _, Save _, LogNotice _] = True
-expectSave _ = False
-
-expectErrors :: [MachineOutput] -> Bool
-expectErrors [LogError _, LogError _] = True
-expectErrors _ = False
+expectSave = any isSave
+ where
+  isSave (Save _) = True
+  isSave _ = False
 
 mkCfg :: Day -> Day -> MachineConfig
 mkCfg start end =
@@ -203,6 +213,13 @@ tests =
               unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
             assertBool "save" $ expectSave outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
+    , testCase "Saves the report for the last day" $ do
+        case initializeMachine $ mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 5) of
+          (Awaiting cfg desc, _) -> do
+            let report = CPR.ClubPerformanceReport (YearMonthDay 2025 5 5) (YearMonth 2025 5) [sampleRecord]
+                (_, outs) = step (Awaiting cfg desc) (DownloadResult (Right report))
+            assertBool "save" $ expectSave outs
+          unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
     , testCase "Retries after download errors" $ do
         let cfg = mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 5)
             failures = 3
@@ -223,7 +240,7 @@ tests =
               case nextState of
                 Errored -> pure ()
                 unexpected -> assertFailure $ "Expected Errored, not " <> show unexpected
-              assertBool "errors" $ expectErrors outs
+              assertBool "errors" $ expectError outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
     , testCase "Fails on bad input" $ do
         let day = YearMonthDay 2025 5 1

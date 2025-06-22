@@ -17,6 +17,7 @@ import Options.Applicative
   , maybeReader
   , metavar
   , option
+  , short
   , showDefault
   , showDefaultWith
   , value
@@ -43,7 +44,8 @@ downloadOptions =
   DownloadOptions
     <$> option
       readDistrict
-      ( long "district"
+      ( short 'd'
+          <> long "district"
           <> metavar "INT"
           <> help "District number"
           <> value (District 117)
@@ -51,7 +53,8 @@ downloadOptions =
       )
     <*> option
       readDay
-      ( long "start-day"
+      ( short 's'
+          <> long "start-day"
           <> metavar "YYYY-MM-DD"
           <> help "First report to download."
           <> value (fromGregorian 2020 7 1)
@@ -59,7 +62,8 @@ downloadOptions =
       )
     <*> option
       readMaybeDay
-      ( long "end-day"
+      ( short 'e'
+          <> long "end-day"
           <> metavar "YYYY-MM-DD"
           <> help "Last report to download"
           <> value Nothing
@@ -67,7 +71,8 @@ downloadOptions =
       )
     <*> option
       auto
-      ( long "requests-per-minute"
+      ( short 'r'
+          <> long "requests-per-minute"
           <> metavar "INT"
           <> help "Max requests to toastmasters.org in one minute"
           <> value 1
@@ -87,7 +92,7 @@ main = do
         { databaseName = DatabaseName "dcp.sqlite"
         , environment = "dev"
         , namespace = "download-reports"
-        , severity = InfoS
+        , severity = NoticeS
         , verbosity = V3
         }
       downloadOptions

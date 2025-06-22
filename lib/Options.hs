@@ -6,6 +6,22 @@ module Options
 
 import Data.String (fromString)
 import Options.Applicative
+  ( Parser
+  , execParser
+  , fullDesc
+  , help
+  , helper
+  , info
+  , long
+  , maybeReader
+  , metavar
+  , option
+  , short
+  , showDefaultWith
+  , str
+  , value
+  , (<**>)
+  )
 import Text.Read (readMaybe)
 
 import Types.Conf (Conf (..))
@@ -23,7 +39,8 @@ confParser
     Conf
       <$> option
         (DatabaseName <$> str)
-        ( long "database-name"
+        ( short 'D'
+            <> long "database-name"
             <> metavar "FILE"
             <> help "SQLite database file"
             <> value (DatabaseName dbDef)
@@ -31,7 +48,8 @@ confParser
         )
       <*> option
         (fromString <$> str)
-        ( long "environment"
+        ( short 'E'
+            <> long "environment"
             <> metavar "ENV"
             <> help "Application environment"
             <> value envDef
@@ -39,7 +57,8 @@ confParser
         )
       <*> option
         (fromString <$> str)
-        ( long "namespace"
+        ( short 'N'
+            <> long "namespace"
             <> metavar "NS"
             <> help "Logging namespace"
             <> value nsDef
@@ -47,7 +66,8 @@ confParser
         )
       <*> option
         readSeverity
-        ( long "severity"
+        ( short 'S'
+            <> long "severity"
             <> metavar "SEVERITY"
             <> help "Minimum log severity"
             <> value sevDef
@@ -55,7 +75,8 @@ confParser
         )
       <*> option
         readVerbosity
-        ( long "verbosity"
+        ( short 'V'
+            <> long "verbosity"
             <> metavar "VERBOSITY"
             <> help "Log verbosity"
             <> value verbDef
