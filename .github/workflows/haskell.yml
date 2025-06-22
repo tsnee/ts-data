@@ -36,14 +36,15 @@ jobs:
           cache-name: cache-dist-newstyle
         with:
           path: dist-newstyle
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('app/**/*.hs','lib/**/*.hs',  'test/**/*.hs', 'ts-data.cabal') }}
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('app/**/*.hs','lib/**/*.hs', 'test/**/*.hs', 'ts-data.cabal') }}
           restore-keys: |
             ${{ runner.os }}-build-${{ env.cache-name }}-
 
       - name: Install dependencies, if necessary
         run: |
           cabal --store-dir cabal-store update
-          cabal --store-dir cabal-store build --only-dependencies --enable-tests --enable-benchmarks
+          cabal --store-dir cabal-store build --only-dependencies \
+            --enable-tests --enable-benchmarks
 
       - name: Build
         run: |
@@ -54,19 +55,21 @@ jobs:
         run: cabal --store-dir cabal-store test all
 
   deploy:
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Upload
-      run: |
-        scp dist-newstyle/build/x86_64-linux/ghc-9.12.2/ts-data-0.1.0.0/x/\
-          server/build/server/server ec2-user@api.brightringsoftware.com:
+      - name: Upload
+        run: |
+          scp dist-newstyle/build/x86_64-linux/ghc-9.12.2/ts-data-0.1.0.0/x/\
+            server/build/server/server ec2-user@api.brightringsoftware.com:
 
-    - name: Restart server
-      run: |
-        ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
-            'sudo systemctl restart ts-data'
+      - name: Restart server
+        run: |
+          ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+              'sudo systemctl restart ts-data'
