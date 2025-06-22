@@ -54,9 +54,6 @@ jobs:
       - name: Run tests
         run: cabal --store-dir cabal-store test all
 
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh
