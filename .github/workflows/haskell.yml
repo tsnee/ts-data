@@ -75,5 +75,6 @@ jobs:
               'sudo systemctl restart ts-data'
 
       - name: Generate OpenAPI documentation
+        run: |
           ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
               'gendocs -o static/openapi.json'
