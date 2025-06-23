@@ -44,15 +44,21 @@ jobs:
         run: |
           cabal --store-dir cabal-store update
           cabal --store-dir cabal-store build --only-dependencies \
-            --enable-tests --enable-benchmarks
+            --enable-benchmarks
 
       - name: Build
         run: |
-          cabal --store-dir cabal-store build --enable-tests \
-            --enable-benchmarks --disable-documentation all
+          cabal --store-dir cabal-store build --enable-benchmarks \
+            --disable-documentation all
 
       - name: Run tests
-        run: cabal --store-dir cabal-store test all
+        run: cabal --store-dir cabal-store test --enable-coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          flags: unittests
+          fail_ci_if_error: true
 
       - name: Set up SSH
         run: |
@@ -77,4 +83,4 @@ jobs:
       - name: Generate OpenAPI documentation
         run: |
           ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
-              'gendocs -o static/openapi.json'
+              './gendocs -o static/openapi.json'
