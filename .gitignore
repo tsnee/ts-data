@@ -1,3 +1,4 @@
 *.sqlite
 .*.swp
 dist-newstyle/
+openapi.json
