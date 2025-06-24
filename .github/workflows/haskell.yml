@@ -40,21 +40,21 @@ jobs:
 
       - name: Install dependencies, if necessary
         run: |
-          cabal --store-dir cabal-store update
-          cabal --store-dir cabal-store build --only-dependencies \
+          cabal --store-dir $PWD/cabal-store update
+          cabal --store-dir $PWD/cabal-store build --only-dependencies \
             --enable-benchmarks
 
       - name: Run tests with coverage
         run: |
-          cabal --store-dir cabal-store test --enable-coverage
-          cabal --store-dir cabal-store install hpc-coveralls
+          cabal --store-dir $PWD/cabal-store test --enable-coverage
+          cabal --store-dir $PWD/cabal-store install hpc-coveralls
           hpc-coveralls ts-data
 
       - name: Upload coverage to coveralls.io
         uses: coverallsapp/github-action@v2
 
       - name: Build
-        run: cabal --store-dir cabal-store build --disable-documentation all
+        run: cabal --store-dir $PWD/cabal-store build --disable-documentation all
 
       - name: Set up SSH
         run: |
@@ -86,23 +86,43 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache Cabal store
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-cabal-hlint
+        with:
+          path: cabal-store
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('ts-data.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+
       - name: Install hlint
         run: |
-          cabal update
-          cabal install hlint
+          cabal --store-dir $PWD/cabal-store update
+          cabal --store-dir $PWD/cabal-store install hlint
 
       - name: Run hlint
-        run: ~/.cabal/bin/hlint app lib test --color
+        run: cabal --store-dir $PWD/cabal-store run hlint app lib test --color
 
   fourmolu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache Cabal store
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-cabal-fourmolu
+        with:
+          path: cabal-store
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('ts-data.cabal') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+
       - name: Install fourmolu
         run: |
-          cabal update
-          cabal install fourmolu
+          cabal --store-dir $PWD/cabal-store update
+          cabal --store-dir $PWD/cabal-store install fourmolu
 
       - name: Run fourmolu check
-        run: ~/.cabal/bin/fourmolu --mode check $(find src test app -name '*.hs')
+        run: cabal --store-dir $PWD/cabal-store run fourmolu --mode check $(find app lib test -name '*.hs')
