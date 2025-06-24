@@ -54,7 +54,7 @@ jobs:
           format: lcov
 
       - name: Upload coverage to Codecov
-        uses: coverallsapp/github-action@v4
+        uses: coverallsapp/github-action@v2
 
       - name: Install hlint
         run: |
