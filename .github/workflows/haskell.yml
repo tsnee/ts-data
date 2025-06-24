@@ -52,7 +52,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libcurl4-openssl-dev
           cabal --store-dir $PWD/cabal-store install hpc-coveralls
-          hpc-coveralls ts-data
+          hpc-coveralls --exclude-dir=test --exclude-dir=dist-newstyle \
+            --service-name github ts-data
 
       - name: Upload coverage to coveralls.io
         uses: coverallsapp/github-action@v2
