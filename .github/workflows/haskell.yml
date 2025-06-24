@@ -47,16 +47,14 @@ jobs:
       - name: Run tests with coverage
         run: cabal --store-dir $PWD/cabal-store test --enable-coverage
 
-      - name: Install hpc-coveralls and dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libcurl4-openssl-dev
-          cabal --store-dir $PWD/cabal-store install hpc-coveralls
-          hpc-coveralls --exclude-dir=test --exclude-dir=dist-newstyle \
-            --service-name github ts-data
+      - name: Generate coverage report
+        uses: 8c6794b6/hpc-codecov-action@v4
+        with:
+          target: cabal:ts-data
+          format: lcov
 
-      - name: Upload coverage to coveralls.io
-        uses: coverallsapp/github-action@v2
+      - name: Upload coverage to Codecov
+        uses: coverallsapp/github-action@v4
 
       - name: Install hlint
         run: |
