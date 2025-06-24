@@ -3,9 +3,7 @@ name: Haskell CI
 
 on:
   push:
-    branches: ["main"]
   pull_request:
-    branches: ["main"]
 
 permissions:
   contents: read
@@ -46,19 +44,17 @@ jobs:
           cabal --store-dir cabal-store build --only-dependencies \
             --enable-benchmarks
 
-      - name: Build
+      - name: Run tests with coverage
         run: |
-          cabal --store-dir cabal-store build --enable-benchmarks \
-            --disable-documentation all
+          cabal --store-dir cabal-store test --enable-coverage
+          cabal --store-dir cabal-store install hpc-coveralls
+          hpc-coveralls ts-data
 
-      - name: Run tests
-        run: cabal --store-dir cabal-store test --enable-coverage
+      - name: Upload coverage to coveralls.io
+        uses: coverallsapp/github-action@v2
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          flags: unittests
-          fail_ci_if_error: true
+      - name: Build
+        run: cabal --store-dir cabal-store build --disable-documentation all
 
       - name: Set up SSH
         run: |
@@ -84,3 +80,29 @@ jobs:
         run: |
           ssh ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
               './gendocs -o static/openapi.json'
+
+  hlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install hlint
+        run: |
+          cabal update
+          cabal install hlint
+
+      - name: Run hlint
+        run: ~/.cabal/bin/hlint app lib test --color
+
+  fourmolu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install fourmolu
+        run: |
+          cabal update
+          cabal install fourmolu
+
+      - name: Run fourmolu check
+        run: ~/.cabal/bin/fourmolu --mode check $(find src test app -name '*.hs')

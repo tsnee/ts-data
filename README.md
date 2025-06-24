@@ -1,7 +1,7 @@
 # ts-data
 
 [![Haskell CI](https://github.com/tsnee/ts-data/actions/workflows/haskell.yml/badge.svg)](https://github.com/tsnee/ts-data/actions/workflows/haskell.yml)
-[![codecov](https://codecov.io/gh/tsnee/ts-data/branch/main/graph/badge.svg)](https://codecov.io/gh/tsnee/ts-data)
+[![Coverage Status](https://coveralls.io/repos/github/tsnee/ts-data/badge.svg?branch=main)](https://coveralls.io/github/tsnee/ts-data?branch=main)
 ![GHC](https://img.shields.io/badge/ghc-9.12.2-blue)
 [![Formatting](https://img.shields.io/badge/code--style-fourmolu-brightgreen.svg)](https://hackage.haskell.org/package/fourmolu)
 [![License](https://img.shields.io/github/license/tsnee/ts-data.svg)](LICENSE)
