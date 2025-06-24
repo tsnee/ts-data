@@ -50,24 +50,20 @@ jobs:
       - name: Generate coverage report
         uses: 8c6794b6/hpc-codecov-action@v4
         with:
-          target: cabal:ts-data
+          target: cabal:ts-data-test
           format: lcov
 
       - name: Upload coverage to Codecov
         uses: coverallsapp/github-action@v2
 
       - name: Install hlint
-        run: |
-          cabal --store-dir $PWD/cabal-store update
-          cabal --store-dir $PWD/cabal-store install hlint
+        run: cabal --store-dir $PWD/cabal-store install hlint
 
       - name: Run hlint
         run: hlint app lib test
 
       - name: Install fourmolu
-        run: |
-          cabal --store-dir $PWD/cabal-store update
-          cabal --store-dir $PWD/cabal-store install fourmolu
+        run: cabal --store-dir $PWD/cabal-store install fourmolu
 
       - name: Run fourmolu check
         run: |
