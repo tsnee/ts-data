@@ -49,8 +49,8 @@ jobs:
 
       - name: Install hpc-coveralls and dependencies
         run: |
-          apt-get update
-          apt-get install libcurl
+          sudo apt-get update
+          sudo apt-get install libcurl
           cabal --store-dir $PWD/cabal-store install hpc-coveralls
           hpc-coveralls ts-data
 
