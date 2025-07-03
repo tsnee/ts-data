@@ -47,17 +47,14 @@ jobs:
       - name: Run tests with coverage
         run: cabal --store-dir $PWD/cabal-store test --enable-coverage
 
-      - name: Find mix files
-        run: find . -name \*.mix -print
-
       - name: Generate coverage report
         uses: 8c6794b6/hpc-codecov-action@v4
         with:
           target: cabal:ts-data-test
-          format: lcov
+          mix: dist-newstyle/build/x86_64-linux/ghc-9.12.2/ts-data-0.1.0.0/build/extra-compilation-artifacts/hpc/vanilla/mix
 
       - name: Upload coverage to Codecov
-        uses: coverallsapp/github-action@v2
+        uses: codecov/codecov-action@v3
 
       - name: Install hlint
         run: cabal --store-dir $PWD/cabal-store install hlint
