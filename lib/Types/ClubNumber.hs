@@ -6,8 +6,7 @@ import Data.OpenApi (ToParamSchema)
 import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
 import Servant.API (FromHttpApiData)
-import TextShow (TextShow)
 
 newtype ClubNumber = ClubNumber Int
   deriving
-    (CSV.FromField, Eq, FromField, FromHttpApiData, HasCodec, Show, TextShow, ToField, ToParamSchema)
+    (CSV.FromField, Eq, FromField, FromHttpApiData, HasCodec, Show, ToField, ToParamSchema)

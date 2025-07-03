@@ -11,8 +11,6 @@ import Data.Text (Text)
 import Data.Text as T (intercalate, pack, show)
 import Data.Time (defaultTimeLocale, formatTime)
 import Katip (Severity (..), logFM, ls)
-import TextShow (showt)
-import TextShow.Data.Time ()
 import Prelude
 
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
@@ -28,12 +26,12 @@ processClubMeasurementRequest CMR.ClubMeasurementRequest{CMR.clubNumber, CMR.met
   logFM DebugS $
     ls $
       "processRequest "
-        <> T.intercalate ", " [showt clubNumber, showt metrics, showt startDate, showt endDate]
+        <> T.intercalate ", " [T.show clubNumber, T.show metrics, T.show startDate, T.show endDate]
         <> " called."
   intMeasurements <- lift $ loadIntMeasurements clubNumber metrics startDate endDate
-  logFM DebugS $ ls $ "Found " <> showt intMeasurements <> " integer measurements."
+  logFM DebugS $ ls $ "Found " <> T.show intMeasurements <> " integer measurements."
   textMeasurements <- lift $ loadTextMeasurements clubNumber metrics startDate endDate
-  logFM DebugS $ ls $ "Found " <> showt textMeasurements <> " text measurements."
+  logFM DebugS $ ls $ "Found " <> T.show textMeasurements <> " text measurements."
   let intSeries = buildIntSeries intMeasurements
       textSeries = buildTextSeries textMeasurements
   pure ClubMeasurementResponse{clubNumber, series = intSeries <> textSeries}

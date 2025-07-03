@@ -9,14 +9,12 @@ import Data.Csv qualified as CSV
 import Database.SQLite.Simple (SQLData (..))
 import Database.SQLite.Simple.FromField (FromField (..))
 import Database.SQLite.Simple.ToField (ToField (..))
-import TextShow (FromStringShow (..), TextShow)
 import Prelude
 
 import PersistenceStore.FieldParsers (parseEnumField)
 
 data DistinguishedStatus = Smedley | Presidents | Select | Distinguished | NotYet
   deriving (Bounded, Enum, Eq, Read, Show)
-  deriving TextShow via FromStringShow DistinguishedStatus
 instance CSV.FromField DistinguishedStatus where
   parseField f = case f of
     "X" -> pure Smedley

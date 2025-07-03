@@ -3,6 +3,7 @@
 module PersistenceStore.SQLite.Tables where
 
 import Data.Foldable (traverse_)
+import Data.Text qualified as T (show)
 import Database.SQLite.Simple
   ( Connection
   , NamedParam (..)
@@ -12,7 +13,6 @@ import Database.SQLite.Simple
   , fromQuery
   )
 import Katip (Severity (..), logFM, ls)
-import TextShow (showt)
 import UnliftIO (liftIO)
 import Prelude
 
@@ -58,7 +58,7 @@ createMetricNameTable conn = do
           executeNamed
             conn
             "INSERT INTO metric_names(id, name) VALUES (:id, :name) ON CONFLICT DO NOTHING"
-            [":id" := fromEnum m, ":name" := showt m]
+            [":id" := fromEnum m, ":name" := T.show m]
   traverse_ insert $ enumFrom minBound
   logFM InfoS "(Conditionally) populated table metric_names."
 
