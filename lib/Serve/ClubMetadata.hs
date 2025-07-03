@@ -3,10 +3,10 @@
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Serve.ClubMetadata (processClubMetadataRequest, parseNameDivision) where
+module Serve.ClubMetadata (processMetadataRequestForClub) where
 
 import Control.Monad.Trans (lift)
-import Data.Text (Text)
+import Data.List (sortBy)
 import Data.Text qualified as T (show)
 import Data.Time (Day, getCurrentTime, utctDay)
 import Katip (Severity (..), logFM, ls)
@@ -18,94 +18,63 @@ import Prelude
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Api (AppHandler)
-import Types.ClubMetadataResponse (ClubMetadataResponse (..))
-import Types.ClubMetric (ClubMetric)
+import Types.Area (Area (..))
+import Types.ClubMetadataResponse (ClubMetadataResponse)
+import Types.ClubMetadataResponse qualified as CMR (ClubMetadataResponse (..))
 import Types.ClubMetric qualified as M (ClubMetric (..))
+import Types.ClubName (ClubName (..))
 import Types.ClubNumber (ClubNumber (..))
 import Types.District (District (..))
-import Types.Division qualified as D (fromText)
+import Types.Division (Division, fromText)
 
-processClubMetadataRequest :: ClubNumber -> AppHandler ClubMetadataResponse
-processClubMetadataRequest clubNumber = do
+processMetadataRequestForClub :: ClubNumber -> Maybe Day -> AppHandler ClubMetadataResponse
+processMetadataRequestForClub clubNumber Nothing = do
   today <- liftIO $ utctDay <$> getCurrentTime
-  districtM <- loadDistrict clubNumber today
-  (nameM, divisionM) <- loadNameAndDivision clubNumber today
-  case (nameM, districtM, divisionM) of
-    (Nothing, Nothing, Nothing) -> throwError err404
-    (Just clubName, Just dist, Just division) -> clubMetadataFound clubNumber clubName dist division
-    _ -> clubMetadataNotFound clubNumber nameM districtM divisionM
+  processMetadataRequestForClub clubNumber $ Just today
+processMetadataRequestForClub clubNumber (Just day) = do
+  (area, district) <- loadAreaAndDistrict clubNumber day
+  (clubName, division) <- loadNameAndDivision clubNumber day
+  clubMetadataFound clubNumber clubName area division district
 
-loadDistrict :: ClubNumber -> Day -> AppHandler (Maybe Int)
-loadDistrict clubNumber today = do
-  districts <- lift $ loadIntMeasurements clubNumber [M.District] (Just today) Nothing
-  case districts of
-    [Measurement{value}] -> pure $ Just value
-    [] -> pure Nothing
+loadAreaAndDistrict :: ClubNumber -> Day -> AppHandler (Area, District)
+loadAreaAndDistrict clubNumber day = do
+  areasAndDistricts <- lift $ loadIntMeasurements clubNumber [M.Area, M.District] (Just day) Nothing
+  let areaBeforeDistrict msmt0 msmt1 =
+        if fromEnum M.Area < fromEnum M.District
+          then compare (metricId msmt0) (metricId msmt1)
+          else compare (metricId msmt1) (metricId msmt0)
+  case sortBy areaBeforeDistrict areasAndDistricts of
+    [] -> throwError err404
+    [Measurement{value = a}, Measurement{value = d}] -> pure (Area a, District d)
     unexpected -> do
-      logFM ErrorS $ ls $ "Expected list length of 0 or 1, but found " <> T.show unexpected
+      logFM ErrorS $
+        ls $
+          "Expected list of Area/Districts of length 0 or 2, but found " <> T.show unexpected
       throwError err500
 
-loadNameAndDivision :: ClubNumber -> Day -> AppHandler (Maybe Text, Maybe Text)
+loadNameAndDivision :: ClubNumber -> Day -> AppHandler (ClubName, Division)
 loadNameAndDivision clubNumber today = do
   namesAndDivisions <-
     lift $ loadTextMeasurements clubNumber [M.ClubName, M.Division] (Just today) Nothing
-  case parseNameDivision namesAndDivisions of
-    Left err -> do
-      logFM ErrorS $ ls err
-      throwError err500
-    Right result -> pure result
-
--- | Parse the combination of club name and division returned from the database.
-parseNameDivision :: forall a. Show a => [Measurement a] -> Either Text (Maybe a, Maybe a)
-parseNameDivision namesAndDivisions = case namesAndDivisions of
-  [] -> Right (Nothing, Nothing)
-  [Measurement{metricId = m0, value = v0}, Measurement{metricId = m1, value = v1}] ->
-    let clubNameId = fromEnum M.ClubName
-        divisionId = fromEnum M.Division
-     in if m0 == clubNameId && m1 == divisionId
-          then Right (Just v0, Just v1)
-          else
-            if m0 == divisionId && m1 == clubNameId
-              then Right (Just v1, Just v0)
-              else
-                Left . mconcat $
-                  [ "Expected club name and division, but found [metricId "
-                  , T.show (toEnum m0 :: ClubMetric)
-                  , ", value "
-                  , T.show v0
-                  , " : metricId "
-                  , T.show (toEnum m1 :: ClubMetric)
-                  , ", value "
-                  , T.show v1
-                  , "]"
-                  ]
-  unexpected -> Left $ "Expected list length of 0 or 2, but found " <> T.show unexpected
-
-clubMetadataFound :: ClubNumber -> Text -> Int -> Text -> AppHandler ClubMetadataResponse
-clubMetadataFound clubNumber clubName dist divString = do
-  division <- case D.fromText divString of
-    Just d -> pure d
-    Nothing -> do
+  let nameBeforeDivision msmt0 msmt1 =
+        if fromEnum M.ClubName < fromEnum M.Division
+          then compare (metricId msmt0) (metricId msmt1)
+          else compare (metricId msmt1) (metricId msmt0)
+  case sortBy nameBeforeDivision namesAndDivisions of
+    [] -> throwError err404
+    [Measurement{value = clubName}, Measurement{value = divisionText}] ->
+      case fromText divisionText of
+        Right division -> pure (ClubName clubName, division)
+        Left err -> do
+          logFM ErrorS $ ls $ "Could not parse division from " <> divisionText <> ": " <> err
+          throwError err500
+    unexpected -> do
       logFM ErrorS $
         ls $
-          mconcat ["When looking up club ID ", T.show clubNumber, ", found division ", divString, "."]
+          "Expected list of ClubName/Divisions of length 0 or 2, but found " <> T.show unexpected
       throwError err500
-  pure $ ClubMetadataResponse{clubNumber, clubName, district = District dist, division}
 
-clubMetadataNotFound
-  :: ClubNumber -> Maybe Text -> Maybe Int -> Maybe Text -> AppHandler ClubMetadataResponse
-clubMetadataNotFound clubNumber nameM districtM divisionM = do
-  logFM ErrorS $
-    ls $
-      mconcat
-        [ "When looking up club ID "
-        , T.show clubNumber
-        , ", found name "
-        , T.show nameM
-        , ", district"
-        , T.show districtM
-        , ", division "
-        , T.show divisionM
-        , "."
-        ]
-  throwError err500
+clubMetadataFound
+  :: ClubNumber -> ClubName -> Area -> Division -> District -> AppHandler ClubMetadataResponse
+clubMetadataFound clubNumber clubName area division district = do
+  pure $ CMR.ClubMetadataResponse{CMR.clubNumber, CMR.clubName, CMR.area, CMR.district, CMR.division}

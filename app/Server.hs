@@ -9,7 +9,7 @@ import Network.HTTP.Types (hContentType)
 import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors, simpleCorsResourcePolicy)
-import Options.Applicative
+import Options.Applicative (Parser, auto, help, long, metavar, option, short, showDefault, value)
 import Servant (Proxy (..))
 import Servant.API ((:<|>) (..))
 import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
@@ -19,8 +19,15 @@ import AppM (runAppM)
 import Options (parseWithConf)
 import Serve.Api (Api, AppHandler)
 import Serve.ClubMeasurement (processClubMeasurementRequest)
-import Serve.ClubMetadata (processClubMetadataRequest)
+import Serve.ClubMetadata (processMetadataRequestForClub)
 import Serve.ClubMetrics (processClubMetricsRequest)
+import Serve.GroupMetadata
+  ( processMetadataRequestForArea
+  , processMetadataRequestForAreas
+  , processMetadataRequestForDistrict
+  , processMetadataRequestForDivision
+  , processMetadataRequestForDivisions
+  )
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
 
@@ -44,9 +51,14 @@ dcpDb = DatabaseName "dcp.sqlite"
 
 server :: ServerT Api AppHandler
 server =
-  processClubMeasurementRequest
-    :<|> processClubMetadataRequest
-    :<|> processClubMetricsRequest
+  processClubMetricsRequest
+    :<|> processMetadataRequestForClub
+    :<|> processMetadataRequestForArea
+    :<|> processMetadataRequestForAreas
+    :<|> processMetadataRequestForDivision
+    :<|> processMetadataRequestForDivisions
+    :<|> processMetadataRequestForDistrict
+    :<|> processClubMeasurementRequest
     :<|> serveDirectoryWebApp "static"
 
 api :: Proxy Api

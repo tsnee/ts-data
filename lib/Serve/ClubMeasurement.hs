@@ -18,12 +18,13 @@ import Prelude
 import PersistenceStore.Measurement (DbDate (..), Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Api (AppHandler)
-import Types.ClubMeasurementRequest (ClubMeasurementRequest (..))
+import Types.ClubMeasurementRequest (ClubMeasurementRequest)
+import Types.ClubMeasurementRequest qualified as CMR (ClubMeasurementRequest (..))
 import Types.ClubMeasurementResponse (ClubMeasurementResponse (..), Codomain (..), Series (..))
 import Types.ClubMetric (ClubMetric (..))
 
 processClubMeasurementRequest :: ClubMeasurementRequest -> AppHandler ClubMeasurementResponse
-processClubMeasurementRequest ClubMeasurementRequest{clubNumber, metrics, startDate, endDate} = do
+processClubMeasurementRequest CMR.ClubMeasurementRequest{CMR.clubNumber, CMR.metrics, CMR.startDate, CMR.endDate} = do
   logFM DebugS $
     ls $
       "processRequest "
@@ -35,7 +36,7 @@ processClubMeasurementRequest ClubMeasurementRequest{clubNumber, metrics, startD
   logFM DebugS $ ls $ "Found " <> showt textMeasurements <> " text measurements."
   let intSeries = buildIntSeries intMeasurements
       textSeries = buildTextSeries textMeasurements
-  pure ClubMeasurementResponse{series = intSeries <> textSeries}
+  pure ClubMeasurementResponse{clubNumber, series = intSeries <> textSeries}
 
 -- | Converts a list of Measurement Int, sorted by metricId, to a list of Series.
 buildIntSeries :: [Measurement Int] -> [Series]

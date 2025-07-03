@@ -22,14 +22,17 @@ import Data.OpenApi (ToSchema (..))
 import Data.Text (Text)
 import GHC.Generics (Generic)
 
-newtype ClubMeasurementResponse = ClubMeasurementResponse {series :: [Series]}
+import Types.ClubNumber (ClubNumber)
+
+data ClubMeasurementResponse = ClubMeasurementResponse {clubNumber :: ClubNumber, series :: [Series]}
   deriving stock (Eq, Generic, Show)
   deriving (FromJSON, ToJSON) via Autodocodec ClubMeasurementResponse
 instance HasCodec ClubMeasurementResponse where
   codec =
     object "ClubMeasurementResponse" $
       ClubMeasurementResponse
-        <$> requiredField "series" "Array of time series" .= series
+        <$> requiredField "club_number" "Club number" .= clubNumber
+        <*> requiredField "series" "Array of time series" .= series
 instance ToSchema ClubMeasurementResponse where
   declareNamedSchema = declareNamedSchemaViaCodec
 

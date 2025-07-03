@@ -47,6 +47,9 @@ jobs:
       - name: Run tests with coverage
         run: cabal --store-dir $PWD/cabal-store test --enable-coverage
 
+      - name: Find mix files
+        run: find . -name \*.mix -print
+
       - name: Generate coverage report
         uses: 8c6794b6/hpc-codecov-action@v4
         with:

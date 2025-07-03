@@ -6,10 +6,10 @@ module Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceR
 
 import Data.Csv (FromNamedRecord, parseNamedRecord, (.:))
 import Data.Text (Text)
+import Data.Text qualified as T (show)
 import Data.Time (Day)
 import Data.Time.Calendar.Month (Month (..))
 import GHC.Generics (Generic)
-import TextShow (FromStringShow (..), TextShow, showt)
 import Prelude
 
 import PersistenceStore.Analyzer (Analyzer (..))
@@ -28,7 +28,6 @@ data ClubPerformanceReport = ClubPerformanceReport
   , records :: ![ClubPerformanceRecord]
   }
   deriving (Generic, Show)
-  deriving TextShow via FromStringShow ClubPerformanceReport
 
 data ClubPerformanceRecord = ClubPerformanceRecord
   { district :: !District
@@ -56,7 +55,6 @@ data ClubPerformanceRecord = ClubPerformanceRecord
   , distinguishedStatus :: !DistinguishedStatus
   }
   deriving (Generic, Show)
-  deriving TextShow via FromStringShow ClubPerformanceRecord
 instance FromNamedRecord ClubPerformanceRecord where
   parseNamedRecord r =
     ClubPerformanceRecord
@@ -186,7 +184,7 @@ instance Analyzer ClubPerformanceRecord Text where
     [ Measurement
         { clubId
         , metricId = fromEnum M.Division
-        , value = showt (division rec)
+        , value = T.show (division rec)
         , date = DbDate date
         }
     , Measurement{clubId, metricId = fromEnum M.ClubName, value = clubName rec, date = DbDate date}
