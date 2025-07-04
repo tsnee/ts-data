@@ -39,7 +39,8 @@ processMetadataRequestForClub clubNumber (Just day) = do
 
 loadAreaAndDistrict :: ClubNumber -> Day -> AppHandler (Area, District)
 loadAreaAndDistrict clubNumber day = do
-  areasAndDistricts <- lift $ loadIntMeasurements clubNumber (M.Area :| [M.District]) (Just day) Nothing
+  areasAndDistricts <-
+    lift $ loadIntMeasurements clubNumber (M.Area :| [M.District]) (Just day) Nothing
   let areaBeforeDistrict msmt0 msmt1 =
         if fromEnum M.Area < fromEnum M.District
           then compare (metricId msmt0) (metricId msmt1)

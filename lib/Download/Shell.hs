@@ -62,7 +62,8 @@ type ClubPerformanceAPI =
     :> QueryParam "report" ClubPerformanceReportDescriptor
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
-downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> Refined Positive Int -> Int -> AppM ()
+downloadClubPerformanceReportsFrom
+  :: District -> Day -> Maybe Day -> Refined Positive Int -> Int -> AppM ()
 downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxFailures = do
   endDate <- today
   downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxFailures

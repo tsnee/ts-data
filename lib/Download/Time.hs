@@ -1,7 +1,7 @@
 module Download.Time (calculatePauseMicros) where
 
 import Data.Fixed (Pico)
-import Data.Time.Clock (UTCTime(..), diffUTCTime, nominalDiffTimeToSeconds)
+import Data.Time.Clock (UTCTime (..), diffUTCTime, nominalDiffTimeToSeconds)
 import Refined (Positive, Refined, unrefine)
 
 secondsPerMinute :: Pico

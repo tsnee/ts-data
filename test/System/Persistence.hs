@@ -39,7 +39,8 @@ tests =
                   expected = testMeasurements
               saveClubIfNecessary conn $ ClubNumber 1
               traverse_ (saveIntMeasurement conn) testMeasurements
-              actual <- loadIntMeasurementsWithConnection conn (ClubNumber 1) (singleton (toEnum 1)) Nothing Nothing
+              actual <-
+                loadIntMeasurementsWithConnection conn (ClubNumber 1) (singleton (toEnum 1)) Nothing Nothing
               liftIO $ expected @?= actual
         , appConnTestCase "persistenceStore" "Everything saved can be loaded when date range is specified" $ \conn ->
             do
