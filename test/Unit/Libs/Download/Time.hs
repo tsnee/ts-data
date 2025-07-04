@@ -2,6 +2,7 @@ module Unit.Libs.Download.Time where
 
 import Data.Maybe (fromMaybe)
 import Data.Time (NominalDiffTime, UTCTime, addUTCTime, defaultTimeLocale, parseTimeM)
+import Refined.Unsafe (unsafeRefine)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 import Prelude
@@ -35,39 +36,39 @@ tests =
     [ testGroup
         "calculatePause"
         [ testCase "One instantaneous request per minute needs 60M micros" $ do
-            let actual = calculatePauseMicros 1 baseTime $ elapsed 0 picoseconds
+            let actual = calculatePauseMicros (unsafeRefine 1) baseTime $ elapsed 0 picoseconds
                 expected = pure 60000000
             actual @?= expected
         , testCase "Four instantaneous requests per minute need 15M micros" $ do
-            let actual = calculatePauseMicros 4 baseTime $ elapsed 0 picoseconds
+            let actual = calculatePauseMicros (unsafeRefine 4) baseTime $ elapsed 0 picoseconds
                 expected = pure 15000000
             actual @?= expected
         , testCase "Six 10s requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 6 baseTime $ elapsed 10 seconds
+            let actual = calculatePauseMicros (unsafeRefine 6) baseTime $ elapsed 10 seconds
                 expected = Nothing
             actual @?= expected
         , testCase "Sixty 1s requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 60 baseTime $ elapsed 1 seconds
+            let actual = calculatePauseMicros (unsafeRefine 60) baseTime $ elapsed 1 seconds
                 expected = Nothing
             actual @?= expected
         , testCase "Fifty 1s requests per minute need 200ms" $ do
-            let actual = calculatePauseMicros 50 baseTime $ elapsed 1 seconds
+            let actual = calculatePauseMicros (unsafeRefine 50) baseTime $ elapsed 1 seconds
                 expected = pure 200000
             actual @?= expected
         , testCase "Five 10s requests per minute need 2s" $ do
-            let actual = calculatePauseMicros 5 baseTime $ elapsed 10 seconds
+            let actual = calculatePauseMicros (unsafeRefine 5) baseTime $ elapsed 10 seconds
                 expected = pure 2000000
             actual @?= expected
         , testCase "Thirty 2s requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 30 baseTime $ elapsed 2 seconds
+            let actual = calculatePauseMicros (unsafeRefine 30) baseTime $ elapsed 2 seconds
                 expected = Nothing
             actual @?= expected
         , testCase "Three hundred 200ms requests per minute need no pause" $ do
-            let actual = calculatePauseMicros 300 baseTime $ elapsed 200 milliseconds
+            let actual = calculatePauseMicros (unsafeRefine 300) baseTime $ elapsed 200 milliseconds
                 expected = Nothing
             actual @?= expected
         , testCase "Two 25s requests per minute need 5M micros" $ do
-            let actual = calculatePauseMicros 2 baseTime $ elapsed 25 seconds
+            let actual = calculatePauseMicros (unsafeRefine 2) baseTime $ elapsed 25 seconds
                 expected = pure 5000000
             actual @?= expected
         ]

@@ -15,7 +15,9 @@ module PersistenceStore.SQLite.Query
   ) where
 
 import Control.Monad.Reader (MonadReader)
+import Data.Functor (unzip)
 import Data.List (intersperse)
+import Data.List.NonEmpty (NonEmpty (..), toList)
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text as T (concat, show, toCaseFold, unpack)
@@ -29,7 +31,7 @@ import Database.SQLite.Simple
   )
 import Katip (KatipContext, Severity (..), logFM, ls)
 import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
-import Prelude
+import Prelude hiding (unzip)
 
 import AppM (AppM)
 import PersistenceStore.Measurement (Measurement (..))
@@ -142,7 +144,7 @@ loadIntMeasurements
      , MonadUnliftIO m
      )
   => ClubNumber
-  -> [ClubMetric]
+  -> NonEmpty ClubMetric
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement Int]
@@ -152,7 +154,7 @@ loadIntMeasurementsWithConnection
   :: (KatipContext m, MonadIO m, MonadReader AppEnv m)
   => Connection
   -> ClubNumber
-  -> [ClubMetric]
+  -> NonEmpty ClubMetric
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement Int]
@@ -166,7 +168,7 @@ loadTextMeasurements
      , MonadUnliftIO m
      )
   => ClubNumber
-  -> [ClubMetric]
+  -> NonEmpty ClubMetric
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement Text]
@@ -176,7 +178,7 @@ loadTextMeasurementsWithConnection
   :: (KatipContext m, MonadIO m, MonadReader AppEnv m)
   => Connection
   -> ClubNumber
-  -> [ClubMetric]
+  -> NonEmpty ClubMetric
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement Text]
@@ -192,7 +194,7 @@ loadMeasurements
      )
   => TableName
   -> ClubNumber
-  -> [ClubMetric]
+  -> NonEmpty ClubMetric
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement a]
@@ -212,7 +214,7 @@ loadMeasurementsWithConnection
   => Connection
   -> TableName
   -> ClubNumber
-  -> [ClubMetric]
+  -> NonEmpty ClubMetric
   -> Maybe Day
   -> Maybe Day
   -> m [Measurement a]
@@ -241,8 +243,10 @@ metricIdParam metric = T.concat [":", T.toCaseFold $ T.show metric]
 metricIdParamQ :: ClubMetric -> Query
 metricIdParamQ = fromString . T.unpack . metricIdParam
 
+-- Ignore spurious warning (this function uses Data.Functor.unzip, not Data.List.NonEmpty.unzip).
+{-# ANN buildLoadMeasurementsQuery ("HLint: ignore Avoid NonEmpty.unzip" :: Text) #-}
 buildLoadMeasurementsQuery
-  :: TableName -> [ClubMetric] -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
+  :: TableName -> NonEmpty ClubMetric -> Maybe Day -> Maybe Day -> (Query, [NamedParam])
 buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, params)
  where
   queriesAndParams = do
@@ -250,7 +254,7 @@ buildLoadMeasurementsQuery tableName clubMetrics startM endM = (query, params)
     let subQuery = buildLoadMeasurementsSubQuery tableName metric startM endM
         param = metricIdParam metric := fromEnum metric
     pure (subQuery, param)
-  (subQueries, params) = unzip queriesAndParams
+  (subQueries, params) = (unzip . toList) queriesAndParams
   query = mconcat (intersperse " UNION ALL " subQueries) <> " ORDER BY metric_id"
 
 buildLoadMeasurementsSubQuery

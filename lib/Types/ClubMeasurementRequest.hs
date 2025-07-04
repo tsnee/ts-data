@@ -7,6 +7,7 @@ module Types.ClubMeasurementRequest (ClubMeasurementRequest (..)) where
 import Autodocodec (Autodocodec (..), HasCodec, codec, object, optionalField, requiredField, (.=))
 import Autodocodec.OpenAPI (declareNamedSchemaViaCodec)
 import Data.Aeson (FromJSON, ToJSON)
+import Data.List.NonEmpty (NonEmpty)
 import Data.OpenApi (ToSchema (..))
 import Data.Time (Day)
 import GHC.Generics (Generic)
@@ -16,7 +17,7 @@ import Types.ClubNumber (ClubNumber)
 
 data ClubMeasurementRequest = ClubMeasurementRequest
   { clubNumber :: !ClubNumber
-  , metrics :: ![ClubMetric]
+  , metrics :: !(NonEmpty ClubMetric)
   , startDate :: !(Maybe Day)
   , endDate :: !(Maybe Day)
   }

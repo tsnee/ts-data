@@ -19,6 +19,7 @@ import Data.Time.Clock (UTCTime, getCurrentTime)
 import Katip (Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
+import Refined (Positive, Refined)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
 import Servant.Client
   ( BaseUrl (..)
@@ -61,7 +62,7 @@ type ClubPerformanceAPI =
     :> QueryParam "report" ClubPerformanceReportDescriptor
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
-downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> Int -> Int -> AppM ()
+downloadClubPerformanceReportsFrom :: District -> Day -> Maybe Day -> Refined Positive Int -> Int -> AppM ()
 downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxFailures = do
   endDate <- today
   downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxFailures
@@ -80,7 +81,7 @@ mkServantClientEnv = do
   manager <- liftIO $ newManager managerSettings
   pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
 
-interpret :: ClientEnv -> Int -> MachineState -> [MachineOutput] -> AppM ()
+interpret :: ClientEnv -> Refined Positive Int -> MachineState -> [MachineOutput] -> AppM ()
 interpret clientEnv rateLimit fsm actions = do
   startPicos <- liftIO getCurrentTime
   sequence_ $ performActions actions
@@ -96,7 +97,7 @@ interpret clientEnv rateLimit fsm actions = do
       let (nextState, nextActions) = step fsm $ DownloadResult $ first T.show result
       interpret clientEnv rateLimit nextState nextActions
 
-pause :: Int -> UTCTime -> UTCTime -> AppM ()
+pause :: Refined Positive Int -> UTCTime -> UTCTime -> AppM ()
 pause requestsPerMinute startPicos endPicos =
   case calculatePauseMicros requestsPerMinute startPicos endPicos of
     Nothing ->

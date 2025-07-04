@@ -4,6 +4,7 @@
 module System.Persistence where
 
 import Data.Foldable (traverse_)
+import Data.List.NonEmpty (singleton)
 import Data.Time (pattern YearMonthDay)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit ((@?=))
@@ -38,7 +39,7 @@ tests =
                   expected = testMeasurements
               saveClubIfNecessary conn $ ClubNumber 1
               traverse_ (saveIntMeasurement conn) testMeasurements
-              actual <- loadIntMeasurementsWithConnection conn (ClubNumber 1) [toEnum 1] Nothing Nothing
+              actual <- loadIntMeasurementsWithConnection conn (ClubNumber 1) (singleton (toEnum 1)) Nothing Nothing
               liftIO $ expected @?= actual
         , appConnTestCase "persistenceStore" "Everything saved can be loaded when date range is specified" $ \conn ->
             do
@@ -59,7 +60,7 @@ tests =
                 loadIntMeasurementsWithConnection
                   conn
                   (ClubNumber 1)
-                  [toEnum 1]
+                  (singleton (toEnum 1))
                   (Just (YearMonthDay 2024 12 31))
                   (Just (YearMonthDay 2025 2 1))
               liftIO $ expected @?= actual
@@ -82,7 +83,7 @@ tests =
                 loadIntMeasurementsWithConnection
                   conn
                   (ClubNumber 1)
-                  [toEnum 1]
+                  (singleton (toEnum 1))
                   (Just (YearMonthDay 2025 1 4))
                   (Just (YearMonthDay 2025 1 6))
               liftIO $ expected @?= actual
@@ -105,7 +106,7 @@ tests =
                 loadIntMeasurementsWithConnection
                   conn
                   (ClubNumber 1)
-                  [toEnum 1]
+                  (singleton (toEnum 1))
                   Nothing
                   (Just (YearMonthDay 2025 1 6))
               liftIO $ expected @?= actual
@@ -128,7 +129,7 @@ tests =
                 loadIntMeasurementsWithConnection
                   conn
                   (ClubNumber 1)
-                  [toEnum 1]
+                  (singleton (toEnum 1))
                   (Just (YearMonthDay 2025 1 4))
                   Nothing
               liftIO $ expected @?= actual

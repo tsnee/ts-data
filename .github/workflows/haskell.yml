@@ -52,6 +52,7 @@ jobs:
         uses: 8c6794b6/hpc-codecov-action@v4
         with:
           target: cabal:ts-data-test
+          src: app,lib
           excludes: Main,System.AppTestCase,System.Persistence,Unit.Libs.Download.MealyMachine,Unit.Libs.Download.Parsers,Unit.Libs.Download.Time,Unit.Libs.Serve,Unit.Libs.Types.ClubPerformanceReportDescriptor
           mix: dist-newstyle/build/x86_64-linux/ghc-9.12.2/ts-data-0.1.0.0/build/extra-compilation-artifacts/hpc/vanilla/mix
 

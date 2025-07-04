@@ -7,6 +7,7 @@ module Serve.ClubMetadata (processMetadataRequestForClub) where
 
 import Control.Monad.Trans (lift)
 import Data.List (sortBy)
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text qualified as T (show)
 import Data.Time (Day, getCurrentTime, utctDay)
 import Katip (Severity (..), logFM, ls)
@@ -38,7 +39,7 @@ processMetadataRequestForClub clubNumber (Just day) = do
 
 loadAreaAndDistrict :: ClubNumber -> Day -> AppHandler (Area, District)
 loadAreaAndDistrict clubNumber day = do
-  areasAndDistricts <- lift $ loadIntMeasurements clubNumber [M.Area, M.District] (Just day) Nothing
+  areasAndDistricts <- lift $ loadIntMeasurements clubNumber (M.Area :| [M.District]) (Just day) Nothing
   let areaBeforeDistrict msmt0 msmt1 =
         if fromEnum M.Area < fromEnum M.District
           then compare (metricId msmt0) (metricId msmt1)
@@ -55,7 +56,7 @@ loadAreaAndDistrict clubNumber day = do
 loadNameAndDivision :: ClubNumber -> Day -> AppHandler (ClubName, Division)
 loadNameAndDivision clubNumber today = do
   namesAndDivisions <-
-    lift $ loadTextMeasurements clubNumber [M.ClubName, M.Division] (Just today) Nothing
+    lift $ loadTextMeasurements clubNumber (M.ClubName :| [M.Division]) (Just today) Nothing
   let nameBeforeDivision msmt0 msmt1 =
         if fromEnum M.ClubName < fromEnum M.Division
           then compare (metricId msmt0) (metricId msmt1)
