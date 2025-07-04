@@ -19,7 +19,7 @@ import Data.Time.Clock (UTCTime, getCurrentTime)
 import Katip (Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Refined (Positive, Refined)
+import Refined (NonNegative, Positive, Refined)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
 import Servant.Client
   ( BaseUrl (..)
@@ -42,6 +42,7 @@ import Download.MealyMachine
   , MachineState (..)
   , initializeMachine
   , step
+  , zero
   )
 import Download.MealyMachine qualified as MC (MachineConfig (district))
 import Download.Parsers (decodeClubReport)
@@ -63,13 +64,13 @@ type ClubPerformanceAPI =
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
 downloadClubPerformanceReportsFrom
-  :: District -> Day -> Maybe Day -> Refined Positive Int -> Int -> AppM ()
-downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxFailures = do
+  :: District -> Day -> Maybe Day -> Refined Positive Int -> Refined NonNegative Int -> Refined NonNegative Int -> AppM ()
+downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxEmptyDays maxFailures = do
   endDate <- today
-  downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxFailures
-downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxFailures = do
+  downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxEmptyDays maxFailures
+downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxEmptyDays maxFailures = do
   servantEnv <- mkServantClientEnv
-  let (fsm, actions) = initializeMachine $ MachineConfig{MC.district, startDate, endDate, maxFailures, failureCount = 0}
+  let (fsm, actions) = initializeMachine $ MachineConfig{MC.district, startDate, endDate, maxEmptyDays, emptyDayCount = zero, maxFailures, failureCount = zero}
   interpret servantEnv rateLimit fsm actions
 
 mkServantClientEnv :: AppM ClientEnv

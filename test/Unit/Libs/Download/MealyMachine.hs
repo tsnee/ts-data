@@ -5,6 +5,7 @@ module Unit.Libs.Download.MealyMachine where
 
 import Data.Time (Day, dayPeriod, pattern YearMonthDay)
 import Data.Time.Calendar.Month (pattern YearMonth)
+import Refined (NonNegative, Refined)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure, testCase, (@?=))
 import Prelude
@@ -15,8 +16,10 @@ import Download.MealyMachine
   , MachineOutput (..)
   , MachineState (..)
   , formatDay
+  , increment
   , initializeMachine
   , step
+  , zero
   )
 import Download.MealyMachine qualified as MC (MachineConfig (..))
 import Types.Area (Area (..))
@@ -32,6 +35,12 @@ import Types.District (District (..))
 import Types.Division (Division (..))
 import Types.Format (Format (..))
 import Types.ProgramYear (ProgramYear (..))
+
+one :: Refined NonNegative Int
+one = increment zero
+
+two :: Refined NonNegative Int
+two = increment one
 
 sampleRecord :: ClubPerformanceRecord
 sampleRecord =
@@ -97,8 +106,10 @@ mkCfg start end =
     { MC.district = District 1
     , MC.startDate = start
     , MC.endDate = end
-    , MC.maxFailures = 7
-    , MC.failureCount = 0
+    , MC.maxEmptyDays = increment zero
+    , MC.emptyDayCount = zero
+    , MC.maxFailures = increment zero
+    , MC.failureCount = zero
     }
 
 tests :: TestTree
@@ -124,7 +135,7 @@ tests =
             District 1 @?= MC.district cfg'
             start @?= MC.startDate cfg'
             end @?= MC.endDate cfg'
-            0 @?= MC.failureCount cfg'
+            zero @?= MC.failureCount cfg'
             expected @?= actual
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
         assertBool "notice" $ expectNotice outs
@@ -145,7 +156,7 @@ tests =
             District 1 @?= MC.district cfg'
             start @?= MC.startDate cfg'
             end @?= MC.endDate cfg'
-            0 @?= MC.failureCount cfg'
+            zero @?= MC.failureCount cfg'
             expected @?= actual
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
         assertBool "notice" $ expectNotice outs
@@ -183,20 +194,22 @@ tests =
               unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
             assertBool "debug" $ expectDebug outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
-    , testCase "Does not retry empty downloads" $ do
-        case initializeMachine $ mkCfg (YearMonthDay 2025 3 1) (YearMonthDay 2025 3 31) of
-          (Awaiting cfg desc, _) -> do
+    , testCase "Advances to the next day after an empty download" $ do
+        let cfg = mkCfg (YearMonthDay 2025 3 1) (YearMonthDay 2025 3 31)
+            cfg' = cfg{MC.emptyDayCount = zero, MC.maxEmptyDays = two}
+        case initializeMachine cfg' of
+          (Awaiting actualCfg desc, _) -> do
             let reportingDate = YearMonthDay 2025 3 1
                 reportingMonth = YearMonth 2025 3
                 report = CPR.ClubPerformanceReport reportingDate reportingMonth []
-                (nextState, outs) = step (Awaiting cfg desc) (DownloadResult (Right report))
-                expectedFailureCount = 1
+                (nextState, outs) = step (Awaiting actualCfg desc) (DownloadResult (Right report))
+                expectedEmptyDayCount = one
                 expectedReportDate = YearMonthDay 2025 3 2
             case nextState of
               Awaiting
-                MC.MachineConfig{MC.failureCount = actualFailureCount}
+                MC.MachineConfig{MC.emptyDayCount = actualEmptyDayCount}
                 CPRD.ClubPerformanceReportDescriptor{CPRD.asOf = actualReportDate} -> do
-                  assertEqual "failureCount was not incremented" expectedFailureCount actualFailureCount
+                  assertEqual "emptyDayCount was not incremented" expectedEmptyDayCount actualEmptyDayCount
                   expectedReportDate @?= actualReportDate
               unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
             assertBool "warning" $ expectWarning outs
@@ -205,11 +218,11 @@ tests =
         case initializeMachine $ mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 5) of
           (Awaiting cfg desc, _) -> do
             let report = CPR.ClubPerformanceReport (YearMonthDay 2025 5 1) (CPRD.reportMonth desc) [sampleRecord]
-                (nextState, outs) = step (Awaiting cfg{MC.failureCount = 1} desc) (DownloadResult (Right report))
+                (nextState, outs) = step (Awaiting cfg{MC.failureCount = one} desc) (DownloadResult (Right report))
                 expectedAsOf = succ (CPRD.asOf desc)
             case nextState of
               Awaiting cfg' desc' -> do
-                0 @?= MC.failureCount cfg'
+                zero @?= MC.failureCount cfg'
                 expectedAsOf @?= CPRD.asOf desc'
               unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
             assertBool "save" $ expectSave outs
@@ -223,33 +236,39 @@ tests =
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
     , testCase "Retries after download errors" $ do
         let cfg = mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 5)
-            failures = 3
+            cfg' = cfg{MC.maxFailures = two}
         case initializeMachine cfg of
-          (Awaiting _ desc, _) -> case step (Awaiting cfg{MC.failureCount = failures} desc) (DownloadResult (Left "err")) of
+          (Awaiting _ desc, _) -> case step (Awaiting cfg' desc) (DownloadResult (Left "err")) of
             (nextState, outs) -> do
               case nextState of
-                Awaiting cfg' _ -> succ failures @?= MC.failureCount cfg'
+                Awaiting actualCfg _ -> one @?= MC.failureCount actualCfg
                 unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
               assertBool "warning" $ expectWarning outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
     , testCase "Stops retrying after n failures" $ do
-        let cfg = mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 5)
-            MC.MachineConfig{MC.maxFailures = defaultMaxFailures} = cfg
-            cfg' = cfg{MC.failureCount = pred defaultMaxFailures}
-        case initializeMachine cfg of
-          (Awaiting _ desc, _) -> case step (Awaiting cfg' desc) (DownloadResult (Left "boom")) of
-            (nextState, outs) -> do
-              case nextState of
-                Errored -> pure ()
-                unexpected -> assertFailure $ "Expected Errored, not " <> show unexpected
-              assertBool "errors" $ expectError outs
+        case initializeMachine (mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 31)) of
+          (Awaiting cfg desc, _) -> do
+            let cfg' = cfg{MC.failureCount = zero, MC.maxFailures = one}
+            case step (Awaiting cfg' desc) (DownloadResult (Left "boom")) of
+              (nextState, outs) -> do
+                case nextState of
+                  Errored -> pure ()
+                  unexpected -> assertFailure $ "Expected Errored, not " <> show unexpected
+                assertBool "errors" $ expectError outs
           unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
     , testCase "Fails on bad input" $ do
         let day = YearMonthDay 2025 5 1
             report = CPR.ClubPerformanceReport day (YearMonth 2025 5) []
-            (nextState, outs) = step Initial (DownloadResult (Right report))
-        case nextState of
-          Failed -> pure ()
-          _ -> assertFailure "Expected Failed"
-        assertBool "error" $ case outs of [LogError _] -> True; _ -> False
+        case step Initial (DownloadResult (Right report)) of
+          (Failed, outs) -> assertBool "error" $ expectError outs
+          unexpected -> assertFailure $ "Expected Failed, not " <> show unexpected
+    , testCase "Stops retrying after n empty reports" $ do
+        let emptyReport = CPR.ClubPerformanceReport (YearMonthDay 2025 5 1) (YearMonth 2025 5) []
+        case initializeMachine (mkCfg (YearMonthDay 2025 5 1) (YearMonthDay 2025 5 10)) of
+          (Awaiting cfg desc, _) -> do
+            let cfg' = cfg{MC.emptyDayCount = zero, MC.maxEmptyDays = one}
+            case step (Awaiting cfg' desc) (DownloadResult (Right emptyReport)) of
+              (Errored, outs) -> assertBool "errors" $ expectError outs
+              unexpected -> assertFailure $ "Expected (Errored, LogError ...) not " <> show unexpected
+          unexpected -> assertFailure $ "Expected Awaiting ..., not " <> show unexpected
     ]
