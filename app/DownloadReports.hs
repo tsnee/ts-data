@@ -22,6 +22,8 @@ import Options.Applicative
   , showDefaultWith
   , value
   )
+import Refined (Positive, Refined)
+import Refined.Unsafe (unsafeRefine)
 import Text.Read (readMaybe)
 
 import AppM (runAppM)
@@ -36,9 +38,12 @@ data DownloadOptions = DownloadOptions
   { district :: District
   , startDay :: Day
   , endDayM :: Maybe Day
-  , maxRequestsPerMinute :: Int
+  , maxRequestsPerMinute :: Refined Positive Int
   , maxFailures :: Int
   }
+
+one :: Refined Positive Int
+one = unsafeRefine 1
 
 downloadOptions :: Parser DownloadOptions
 downloadOptions =
@@ -76,7 +81,7 @@ downloadOptions =
           <> long "requests-per-minute"
           <> metavar "INT"
           <> help "Max requests to toastmasters.org in one minute"
-          <> value 1
+          <> value one
           <> showDefault
       )
     <*> option

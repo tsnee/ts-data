@@ -192,6 +192,7 @@ executable download-reports
         katip ^>=0.8.8.2,
         time ^>=1.14,
         optparse-applicative ^>=0.17.1.0,
+        refined ^>=0.8.2,
         ts-data
 
     -- Directories containing source files.

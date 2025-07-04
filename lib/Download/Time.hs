@@ -1,6 +1,6 @@
 module Download.Time (calculatePauseMicros) where
 
-import Data.Fixed (Fixed(..), Pico)
+import Data.Fixed (Pico)
 import Data.Time.Clock (UTCTime(..), diffUTCTime, nominalDiffTimeToSeconds)
 import Refined (Positive, Refined, unrefine)
 
@@ -20,7 +20,7 @@ microsPerMinute :: Pico
 microsPerMinute = microsPerSecond * secondsPerMinute
 
 toPico :: Refined Positive Int -> Pico
-toPico = MkFixed . fromIntegral . unrefine
+toPico = fromIntegral . unrefine
 
 calculatePauseMicros :: Refined Positive Int -> UTCTime -> UTCTime -> Maybe Int
 calculatePauseMicros maxRequestsPerMinute startPicos endPicos = do
