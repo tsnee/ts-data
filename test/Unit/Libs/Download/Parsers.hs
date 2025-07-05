@@ -12,10 +12,8 @@ import Test.Tasty.HUnit (assertEqual, assertFailure, testCase, (@?=))
 import Prelude
 
 import Download.Parsers (decodeClubReport, parseFooter)
-import Types.ClubMeasurementResponse (Codomain (..), Series (..))
 import Types.ClubNumber (ClubNumber (..))
 import Types.ClubPerformanceReport (ClubPerformanceRecord (..), ClubPerformanceReport (..))
-import Unit.Common.Sorting (sortByDate)
 
 tests :: TestTree
 tests =

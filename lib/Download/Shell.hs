@@ -13,6 +13,7 @@ module Download.Shell (CsvOctetStream (..), EmptyDayCount, FailureCount, downloa
 
 import Control.Monad.Reader (ask)
 import Data.Bifunctor (first)
+import Data.Foldable (traverse_)
 import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T (show)
