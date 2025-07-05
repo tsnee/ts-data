@@ -147,11 +147,9 @@ lookupLastReportDate =
       liftIO $
         query_ conn $
           mconcat
-            [ "SELECT MAX(max_date) FROM ("
-            , "SELECT MAX(date) AS max_date FROM "
+            [ "SELECT MAX(max_date) FROM (SELECT MAX(date) AS max_date FROM "
             , toQuery intMeasurementTable
-            , ") UNION ALL ("
-            , "SELECT MAX(date) AS max_date FROM "
+            , " UNION ALL SELECT MAX(date) AS max_date FROM "
             , toQuery textMeasurementTable
             , ")"
             ]
