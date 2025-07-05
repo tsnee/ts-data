@@ -124,7 +124,7 @@ mkServantClientEnv = do
 interpret :: ClientEnv -> RequestsPerMinute -> MachineState -> [MachineOutput] -> AppM ()
 interpret clientEnv rateLimit fsm actions = do
   startPicos <- liftIO getCurrentTime
-  sequence_ $ performActions actions
+  traverse_ performAction actions
   case fsm of
     Initial -> logFM ErrorS "Programmer error - Download state machine used incorrectly."
     Failed -> logFM ErrorS "Programmer error - Download state machine given incorrect input."
@@ -146,16 +146,15 @@ pause requestsPerMinute startPicos endPicos =
       logFM InfoS $ ls $ "Pausing " <> show p <> " microseconds."
       liftIO $ threadDelay p
 
-performActions :: [MachineOutput] -> [AppM ()]
-performActions actions = do
-  action <- actions
+performAction :: MachineOutput -> AppM ()
+performAction action = do
   case action of
-    LogDebug str -> pure $ logFM DebugS str
-    LogInfo str -> pure $ logFM InfoS str
-    LogNotice str -> pure $ logFM NoticeS str
-    LogWarning str -> pure $ logFM WarningS str
-    LogError str -> pure $ logFM ErrorS str
-    Save report -> pure $ do
+    LogDebug str -> logFM DebugS str
+    LogInfo str -> logFM InfoS str
+    LogNotice str -> logFM NoticeS str
+    LogWarning str -> logFM WarningS str
+    LogError str -> logFM ErrorS str
+    Save report -> do
       saveReport report
       logFM NoticeS $
         ls $

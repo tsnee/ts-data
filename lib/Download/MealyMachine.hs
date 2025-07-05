@@ -23,7 +23,7 @@ import Data.Time (Day (..), dayPeriod, pattern July)
 import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import Katip (LogStr (..), ls)
-import Refined (refineTH)
+import Refined (refineTH, unrefine)
 import Prelude
 
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
@@ -126,7 +126,9 @@ handleEmptyReport cfg descriptor =
   case incr $ emptyDayCount cfg of
     nextEmptyDayCount
       | nextEmptyDayCount >=? maxEmptyDays cfg ->
-          let errorMsg = ls $ mconcat ["Giving up after ", T.show nextEmptyDayCount, " consecutive empty reports."]
+          let errorMsg =
+                ls $
+                  mconcat ["Giving up after ", T.show (unrefine nextEmptyDayCount), " consecutive empty reports."]
            in (Errored, [LogError errorMsg])
     nextEmptyDayCount ->
       let nextCfg = cfg{emptyDayCount = unlift nextEmptyDayCount}
@@ -164,7 +166,7 @@ retryWithLimits cfg descriptor err = (resultState, output)
  where
   nextFailureCount = incr $ failureCount cfg
   warningMsg = ls $ mconcat ["Failed to download ", T.show descriptor, ", retrying."]
-  errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive failures."]
+  errorMsg = ls $ mconcat ["Giving up after ", T.show (unrefine nextFailureCount), " consecutive failures."]
   (resultState, output) =
     if nextFailureCount >=? maxFailures cfg
       then
