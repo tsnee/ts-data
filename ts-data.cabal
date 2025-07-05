@@ -66,6 +66,7 @@ library
         Download.Shell,
         Download.Time,
         PersistenceStore.Analyzer,
+        PersistenceStore.DbDate,
         PersistenceStore.FieldParsers,
         PersistenceStore.Measurement,
         PersistenceStore.SQLite.Common,

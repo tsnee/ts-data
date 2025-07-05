@@ -12,12 +12,14 @@ module PersistenceStore.SQLite.Query
   , loadIntMeasurementsWithConnection
   , loadTextMeasurements
   , loadTextMeasurementsWithConnection
+  , lookupLastReportDate
   ) where
 
 import Control.Monad.Reader (MonadReader)
 import Data.Functor (unzip)
 import Data.List (intersperse)
 import Data.List.NonEmpty (NonEmpty (..), toList)
+import Data.Maybe (listToMaybe)
 import Data.String (fromString)
 import Data.Text (Text)
 import Data.Text as T (concat, show, toCaseFold, unpack)
@@ -28,12 +30,14 @@ import Database.SQLite.Simple
   , NamedParam (..)
   , Query (..)
   , queryNamed
+  , query_
   )
 import Katip (KatipContext, Severity (..), logFM, ls)
 import UnliftIO (MonadIO, MonadUnliftIO, liftIO)
 import Prelude hiding (unzip)
 
 import AppM (AppM)
+import PersistenceStore.DbDate (DbDate (..))
 import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Common
   ( TableName (..)
@@ -135,6 +139,23 @@ loadClubsFor dist levelFilter asOf =
             , ":divisionValue" := divisionFilter
             , endDateParam := asOf
             ]
+
+lookupLastReportDate :: AppM (Maybe DbDate)
+lookupLastReportDate =
+  withDatabase $ \conn -> do
+    maxes <-
+      liftIO $
+        query_ conn $
+          mconcat
+            [ "SELECT MAX(max_date) FROM ("
+            , "SELECT MAX(date) AS max_date FROM "
+            , toQuery intMeasurementTable
+            , ") UNION ALL ("
+            , "SELECT MAX(date) AS max_date FROM "
+            , toQuery textMeasurementTable
+            , ")"
+            ]
+    pure $ listToMaybe maxes
 
 loadIntMeasurements
   :: forall m

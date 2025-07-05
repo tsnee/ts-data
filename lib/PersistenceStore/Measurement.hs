@@ -3,22 +3,17 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE StandaloneDeriving #-}
 
-module PersistenceStore.Measurement (DbDate (..), Measurement (..)) where
+module PersistenceStore.Measurement (Measurement (..)) where
 
 import Data.Text (Text)
 import Data.Text as T (pack)
-import Data.Time (Day, defaultTimeLocale, formatTime)
+import Data.Time (defaultTimeLocale, formatTime)
 import Database.SQLite.Simple (FromRow (..), SQLData (..), ToRow (..), field)
-import Database.SQLite.Simple.FromField (FromField (..))
-import Database.SQLite.Simple.ToField (ToField (..))
 import GHC.Generics (Generic)
 import Prelude
 
+import PersistenceStore.DbDate (DbDate (..))
 import Types.ClubNumber (ClubNumber (..))
-
-newtype DbDate = DbDate Day
-  deriving stock (Eq, Generic)
-  deriving (FromField, Show, ToField) via Day
 
 data Measurement a = Measurement {clubId :: !ClubNumber, metricId :: !Int, value :: !a, date :: !DbDate}
   deriving Generic

@@ -6,7 +6,6 @@ module Main where
 import Data.Time
   ( Day
   , defaultTimeLocale
-  , fromGregorian
   , parseTimeM
   )
 import Katip (Severity (..), Verbosity (..))
@@ -37,7 +36,7 @@ import Types.District (District (..))
 
 data DownloadOptions = DownloadOptions
   { district :: District
-  , startDay :: Day
+  , startDayM :: Maybe Day
   , endDayM :: Maybe Day
   , maxRequestsPerMinute :: RequestsPerMinute
   , maxEmptyDays :: EmptyDayCount
@@ -57,22 +56,20 @@ downloadOptions =
           <> showDefaultWith (\(District d) -> show d)
       )
     <*> option
-      readDay
+      readMaybeDay
       ( short 's'
           <> long "start-day"
           <> metavar "YYYY-MM-DD"
-          <> help "First report to download."
-          <> value (fromGregorian 2020 7 1)
-          <> showDefault
+          <> help "First report to download, defaulting to the day after the last date in the database."
+          <> value Nothing
       )
     <*> option
       readMaybeDay
       ( short 'e'
           <> long "end-day"
           <> metavar "YYYY-MM-DD"
-          <> help "Last report to download"
+          <> help "Last report to download, defaulting to today."
           <> value Nothing
-          <> showDefaultWith (maybe "Today" show)
       )
     <*> option
       auto
@@ -110,7 +107,7 @@ downloadOptions =
 main :: IO ()
 main = do
   ( conf
-    , DownloadOptions{district, startDay, endDayM, maxRequestsPerMinute, maxEmptyDays, maxFailures}
+    , DownloadOptions{district, startDayM, endDayM, maxRequestsPerMinute, maxEmptyDays, maxFailures}
     ) <-
     parseWithConf
       Conf
@@ -125,7 +122,7 @@ main = do
     createTables
     downloadClubPerformanceReportsFrom
       district
-      startDay
+      startDayM
       endDayM
       maxRequestsPerMinute
       maxEmptyDays

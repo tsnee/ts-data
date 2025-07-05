@@ -13,7 +13,8 @@ import Data.Time (defaultTimeLocale, formatTime)
 import Katip (Severity (..), logFM, ls)
 import Prelude
 
-import PersistenceStore.Measurement (DbDate (..), Measurement (..))
+import PersistenceStore.DbDate (DbDate (..))
+import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Query (loadIntMeasurements, loadTextMeasurements)
 import Serve.Api (AppHandler)
 import Types.ClubMeasurementRequest (ClubMeasurementRequest)

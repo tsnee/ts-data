@@ -13,6 +13,7 @@ module Download.Shell (CsvOctetStream (..), EmptyDayCount, FailureCount, downloa
 
 import Control.Monad.Reader (ask)
 import Data.Bifunctor (first)
+import Data.Maybe (fromMaybe)
 import Data.Proxy (Proxy (..))
 import Data.Text qualified as T (show)
 import Data.Time (Day (..), utctDay)
@@ -47,7 +48,9 @@ import Download.MealyMachine
 import Download.MealyMachine qualified as MC (MachineConfig (district))
 import Download.Parsers (decodeClubReport)
 import Download.Time (calculatePauseMicros)
+import PersistenceStore.DbDate (DbDate (..))
 import PersistenceStore.SQLite.Insert (saveReport)
+import PersistenceStore.SQLite.Query (lookupLastReportDate)
 import Types.AppEnv (AppEnv (..))
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
 import Types.ClubPerformanceReportDescriptor (ClubPerformanceReportDescriptor (..))
@@ -66,22 +69,34 @@ type ClubPerformanceAPI =
 
 downloadClubPerformanceReportsFrom
   :: District
-  -> Day
+  -> Maybe Day
   -> Maybe Day
   -> RequestsPerMinute
   -> EmptyDayCount
   -> FailureCount
   -> AppM ()
-downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxEmptyDays maxFailures = do
+downloadClubPerformanceReportsFrom district Nothing endDateM rateLimit maxEmptyDays maxFailures = do
+  lastDateM <- lookupLastReportDate
+  defaultToToday <- today
+  let nextDateM = succ . fromDbDate <$> lastDateM
+      startDate = fromMaybe defaultToToday nextDateM
+  downloadClubPerformanceReportsFrom
+    district
+    (Just startDate)
+    endDateM
+    rateLimit
+    maxEmptyDays
+    maxFailures
+downloadClubPerformanceReportsFrom district startDateM Nothing rateLimit maxEmptyDays maxFailures = do
   endDate <- today
   downloadClubPerformanceReportsFrom
     district
-    startDate
+    startDateM
     (Just endDate)
     rateLimit
     maxEmptyDays
     maxFailures
-downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxEmptyDays maxFailures = do
+downloadClubPerformanceReportsFrom district (Just startDate) (Just endDate) rateLimit maxEmptyDays maxFailures = do
   servantEnv <- mkServantClientEnv
   let (fsm, actions) =
         initializeMachine $

@@ -29,7 +29,7 @@ import Types.AppEnv (AppEnv (..))
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
 
-newtype TableName = TableName Query
+newtype TableName = TableName {toQuery :: Query}
 
 testDatabase :: DatabaseName
 testDatabase = DatabaseName ":memory:"

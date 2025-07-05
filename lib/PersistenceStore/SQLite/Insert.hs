@@ -31,7 +31,8 @@ import UnliftIO (MonadIO, liftIO)
 import Prelude
 
 import PersistenceStore.Analyzer (analyze)
-import PersistenceStore.Measurement (DbDate (..), Measurement (..))
+import PersistenceStore.DbDate (DbDate (..))
+import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Common
   ( TableName (..)
   , intMeasurementTable

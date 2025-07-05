@@ -13,7 +13,8 @@ import GHC.Generics (Generic)
 import Prelude
 
 import PersistenceStore.Analyzer (Analyzer (..))
-import PersistenceStore.Measurement (DbDate (..), Measurement (..))
+import PersistenceStore.DbDate (DbDate (..))
+import PersistenceStore.Measurement (Measurement (..))
 import Types.Area (Area (..))
 import Types.ClubMetric qualified as M
 import Types.ClubNumber (ClubNumber (..))

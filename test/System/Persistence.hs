@@ -11,7 +11,8 @@ import Test.Tasty.HUnit ((@?=))
 import UnliftIO (liftIO)
 import Prelude
 
-import PersistenceStore.Measurement (DbDate (..), Measurement (..))
+import PersistenceStore.DbDate (DbDate (..))
+import PersistenceStore.Measurement (Measurement (..))
 import PersistenceStore.SQLite.Insert (saveClubIfNecessary, saveIntMeasurement)
 import PersistenceStore.SQLite.Query (loadIntMeasurementsWithConnection)
 import PersistenceStore.SQLite.Tables (createTablesWithConnection)
