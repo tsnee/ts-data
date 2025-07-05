@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {- |
 Module      : Download.MealyMachine
@@ -12,10 +13,8 @@ module Download.MealyMachine
   , MachineOutput (..)
   , MachineState (..)
   , formatDay
-  , increment
   , initializeMachine
   , step
-  , zero
   ) where
 
 import Data.Text (Text)
@@ -24,7 +23,7 @@ import Data.Time (Day (..), dayPeriod, pattern July)
 import Data.Time.Calendar.Month (Month (..), pattern YearMonth)
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import Katip (LogStr (..), ls)
-import Refined (NonNegative, Refined, refine, unrefine)
+import Refined (refineTH)
 import Prelude
 
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
@@ -37,31 +36,19 @@ import Types.ClubPerformanceReportDescriptor
       , reportMonth
       )
   )
+import Types.Counts (EmptyDayCount, FailureCount, incr, unlift, (>=?))
 import Types.District (District (..))
 import Types.Format (Format (CSV))
 import Types.ProgramYear (ProgramYear (..))
-
-impossible :: Refined NonNegative Int
-impossible = undefined
-
-zero :: Refined NonNegative Int
-zero = case refine 0 of
-  Right z -> z
-  Left _ -> impossible
-
-increment :: Refined NonNegative Int -> Refined NonNegative Int
-increment x = case refine $ succ $ unrefine x of
-  Right i -> i
-  Left _ -> impossible
 
 data MachineConfig = MachineConfig
   { district :: District
   , startDate :: Day
   , endDate :: Day
-  , maxEmptyDays :: Refined NonNegative Int
-  , emptyDayCount :: Refined NonNegative Int
-  , maxFailures :: Refined NonNegative Int
-  , failureCount :: Refined NonNegative Int
+  , maxEmptyDays :: EmptyDayCount
+  , emptyDayCount :: EmptyDayCount
+  , maxFailures :: FailureCount
+  , failureCount :: FailureCount
   }
   deriving Show
 
@@ -133,18 +120,20 @@ tryFollowingMonth cfg descriptor = (resultState, output)
             ]
     ]
 
-handleEmptyReport :: MachineConfig -> ClubPerformanceReportDescriptor -> (MachineState, [MachineOutput])
+handleEmptyReport
+  :: MachineConfig -> ClubPerformanceReportDescriptor -> (MachineState, [MachineOutput])
 handleEmptyReport cfg descriptor =
-  case increment $ emptyDayCount cfg of
-    nextEmptyDayCount | nextEmptyDayCount >= maxEmptyDays cfg ->
-      let errorMsg = ls $ mconcat ["Giving up after ", T.show nextEmptyDayCount, " consecutive empty reports."]
-      in (Errored, [LogError errorMsg])
+  case incr $ emptyDayCount cfg of
+    nextEmptyDayCount
+      | nextEmptyDayCount >=? maxEmptyDays cfg ->
+          let errorMsg = ls $ mconcat ["Giving up after ", T.show nextEmptyDayCount, " consecutive empty reports."]
+           in (Errored, [LogError errorMsg])
     nextEmptyDayCount ->
-      let nextCfg = cfg{emptyDayCount = nextEmptyDayCount}
+      let nextCfg = cfg{emptyDayCount = unlift nextEmptyDayCount}
           nextReportDate = succ $ asOf descriptor
           nextDescriptor = descriptor{asOf = nextReportDate}
           warningMsg = ls $ mconcat ["After downloading an empty report for ", T.show descriptor, ", trying next day."]
-      in (Awaiting nextCfg nextDescriptor, [LogWarning warningMsg])
+       in (Awaiting nextCfg nextDescriptor, [LogWarning warningMsg])
 
 saveReportAndIncrementDay
   :: MachineConfig
@@ -155,7 +144,7 @@ saveReportAndIncrementDay cfg descriptor report = (resultState, output)
  where
   nextReportDate = succ $ asOf descriptor
   nextDescriptor = descriptor{asOf = nextReportDate}
-  resultState = Awaiting cfg{failureCount = zero} nextDescriptor
+  resultState = Awaiting cfg{failureCount = $$(refineTH 0)} nextDescriptor
   infoMsg =
     ls $
       mconcat
@@ -173,15 +162,15 @@ retryWithLimits
   :: MachineConfig -> ClubPerformanceReportDescriptor -> Text -> (MachineState, [MachineOutput])
 retryWithLimits cfg descriptor err = (resultState, output)
  where
-  nextFailureCount = increment $ failureCount cfg
+  nextFailureCount = incr $ failureCount cfg
   warningMsg = ls $ mconcat ["Failed to download ", T.show descriptor, ", retrying."]
   errorMsg = ls $ mconcat ["Giving up after ", T.show nextFailureCount, " consecutive failures."]
   (resultState, output) =
-    if nextFailureCount >= maxFailures cfg
+    if nextFailureCount >=? maxFailures cfg
       then
         (Errored, [LogError (ls err), LogError errorMsg])
       else
-        (Awaiting cfg{failureCount = nextFailureCount} descriptor, [LogWarning warningMsg])
+        (Awaiting cfg{failureCount = unlift nextFailureCount} descriptor, [LogWarning warningMsg])
 
 formatMonth :: Month -> Text
 formatMonth = T.pack . formatTime defaultTimeLocale "%B %Y"

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Main where
 
@@ -22,15 +23,15 @@ import Options.Applicative
   , showDefaultWith
   , value
   )
-import Refined (Positive, Refined)
-import Refined.Unsafe (unsafeRefine)
+import Refined (refineTH)
 import Text.Read (readMaybe)
 
 import AppM (runAppM)
-import Download.Shell (downloadClubPerformanceReportsFrom)
+import Download.Shell (EmptyDayCount, FailureCount, downloadClubPerformanceReportsFrom)
 import Options (parseWithConf)
 import PersistenceStore.SQLite.Tables (createTables)
 import Types.Conf (Conf (..))
+import Types.Counts (RequestsPerMinute)
 import Types.DatabaseName (DatabaseName (..))
 import Types.District (District (..))
 
@@ -38,12 +39,10 @@ data DownloadOptions = DownloadOptions
   { district :: District
   , startDay :: Day
   , endDayM :: Maybe Day
-  , maxRequestsPerMinute :: Refined Positive Int
-  , maxFailures :: Int
+  , maxRequestsPerMinute :: RequestsPerMinute
+  , maxEmptyDays :: EmptyDayCount
+  , maxFailures :: FailureCount
   }
-
-one :: Refined Positive Int
-one = unsafeRefine 1
 
 downloadOptions :: Parser DownloadOptions
 downloadOptions =
@@ -81,16 +80,25 @@ downloadOptions =
           <> long "requests-per-minute"
           <> metavar "INT"
           <> help "Max requests to toastmasters.org in one minute"
-          <> value one
+          <> value $$(refineTH 1)
           <> showDefault
       )
     <*> option
       auto
-      ( short 'm'
-          <> long "max-failures"
+      ( short 'p'
+          <> long "max-empty-days"
           <> metavar "INT"
           <> help "Max number of consecutive empty reports to download before giving up"
-          <> value 10
+          <> value $$(refineTH 10)
+          <> showDefault
+      )
+    <*> option
+      auto
+      ( short 'f'
+          <> long "max-failures"
+          <> metavar "INT"
+          <> help "Max number of consecutive download failures before giving up"
+          <> value $$(refineTH 3)
           <> showDefault
       )
  where
@@ -101,7 +109,9 @@ downloadOptions =
 
 main :: IO ()
 main = do
-  (conf, DownloadOptions{district, startDay, endDayM, maxRequestsPerMinute, maxFailures}) <-
+  ( conf
+    , DownloadOptions{district, startDay, endDayM, maxRequestsPerMinute, maxEmptyDays, maxFailures}
+    ) <-
     parseWithConf
       Conf
         { databaseName = DatabaseName "dcp.sqlite"
@@ -113,4 +123,10 @@ main = do
       downloadOptions
   runAppM conf () $ do
     createTables
-    downloadClubPerformanceReportsFrom district startDay endDayM maxRequestsPerMinute maxFailures
+    downloadClubPerformanceReportsFrom
+      district
+      startDay
+      endDayM
+      maxRequestsPerMinute
+      maxEmptyDays
+      maxFailures

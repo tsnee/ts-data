@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 
 {- |
@@ -8,7 +9,7 @@ Module      : Download.Shell
 Description : Impure shell around pure functions for downloading club performance reports.
 Maintainer  : tomsnee@gmail.com
 -}
-module Download.Shell (CsvOctetStream (..), downloadClubPerformanceReportsFrom) where
+module Download.Shell (CsvOctetStream (..), EmptyDayCount, FailureCount, downloadClubPerformanceReportsFrom) where
 
 import Control.Monad.Reader (ask)
 import Data.Bifunctor (first)
@@ -19,7 +20,7 @@ import Data.Time.Clock (UTCTime, getCurrentTime)
 import Katip (Severity (..), logFM, ls, runKatipContextT)
 import Network.HTTP.Client (managerModifyRequest, newManager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
-import Refined (NonNegative, Positive, Refined)
+import Refined (refineTH)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
 import Servant.Client
   ( BaseUrl (..)
@@ -42,7 +43,6 @@ import Download.MealyMachine
   , MachineState (..)
   , initializeMachine
   , step
-  , zero
   )
 import Download.MealyMachine qualified as MC (MachineConfig (district))
 import Download.Parsers (decodeClubReport)
@@ -51,6 +51,7 @@ import PersistenceStore.SQLite.Insert (saveReport)
 import Types.AppEnv (AppEnv (..))
 import Types.ClubPerformanceReport (ClubPerformanceReport (..))
 import Types.ClubPerformanceReportDescriptor (ClubPerformanceReportDescriptor (..))
+import Types.Counts (EmptyDayCount, FailureCount, RequestsPerMinute)
 import Types.District (District (..))
 import Types.Format (Format (..))
 import Types.ProgramYear (ProgramYear (..))
@@ -64,13 +65,35 @@ type ClubPerformanceAPI =
     :> Get '[CsvOctetStream] ClubPerformanceReport
 
 downloadClubPerformanceReportsFrom
-  :: District -> Day -> Maybe Day -> Refined Positive Int -> Refined NonNegative Int -> Refined NonNegative Int -> AppM ()
+  :: District
+  -> Day
+  -> Maybe Day
+  -> RequestsPerMinute
+  -> EmptyDayCount
+  -> FailureCount
+  -> AppM ()
 downloadClubPerformanceReportsFrom district startDate Nothing rateLimit maxEmptyDays maxFailures = do
   endDate <- today
-  downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxEmptyDays maxFailures
+  downloadClubPerformanceReportsFrom
+    district
+    startDate
+    (Just endDate)
+    rateLimit
+    maxEmptyDays
+    maxFailures
 downloadClubPerformanceReportsFrom district startDate (Just endDate) rateLimit maxEmptyDays maxFailures = do
   servantEnv <- mkServantClientEnv
-  let (fsm, actions) = initializeMachine $ MachineConfig{MC.district, startDate, endDate, maxEmptyDays, emptyDayCount = zero, maxFailures, failureCount = zero}
+  let (fsm, actions) =
+        initializeMachine $
+          MachineConfig
+            { MC.district
+            , startDate
+            , endDate
+            , maxEmptyDays
+            , emptyDayCount = $$(refineTH 0)
+            , maxFailures
+            , failureCount = $$(refineTH 0)
+            }
   interpret servantEnv rateLimit fsm actions
 
 mkServantClientEnv :: AppM ClientEnv
@@ -83,7 +106,7 @@ mkServantClientEnv = do
   manager <- liftIO $ newManager managerSettings
   pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
 
-interpret :: ClientEnv -> Refined Positive Int -> MachineState -> [MachineOutput] -> AppM ()
+interpret :: ClientEnv -> RequestsPerMinute -> MachineState -> [MachineOutput] -> AppM ()
 interpret clientEnv rateLimit fsm actions = do
   startPicos <- liftIO getCurrentTime
   sequence_ $ performActions actions
@@ -99,7 +122,7 @@ interpret clientEnv rateLimit fsm actions = do
       let (nextState, nextActions) = step fsm $ DownloadResult $ first T.show result
       interpret clientEnv rateLimit nextState nextActions
 
-pause :: Refined Positive Int -> UTCTime -> UTCTime -> AppM ()
+pause :: RequestsPerMinute -> UTCTime -> UTCTime -> AppM ()
 pause requestsPerMinute startPicos endPicos =
   case calculatePauseMicros requestsPerMinute startPicos endPicos of
     Nothing ->

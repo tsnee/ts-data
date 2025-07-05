@@ -90,6 +90,7 @@ library
         Types.ClubPerformanceReportDescriptor,
         Types.ClubStatus,
         Types.Conf,
+        Types.Counts,
         Types.DatabaseName,
         Types.DistinguishedStatus,
         Types.District,
