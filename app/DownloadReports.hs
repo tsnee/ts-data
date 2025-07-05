@@ -3,6 +3,7 @@
 
 module Main where
 
+import Data.Bifunctor (first)
 import Data.Time
   ( Day
   , defaultTimeLocale
@@ -11,7 +12,9 @@ import Data.Time
 import Katip (Severity (..), Verbosity (..))
 import Options.Applicative
   ( Parser
+  , ReadM
   , auto
+  , eitherReader
   , help
   , long
   , maybeReader
@@ -22,8 +25,8 @@ import Options.Applicative
   , showDefaultWith
   , value
   )
-import Refined (refineTH)
-import Text.Read (readMaybe)
+import Refined (NonNegative, Positive, Predicate, Refined, displayRefineException, refine, refineTH)
+import Text.Read (readEither)
 
 import AppM (runAppM)
 import Download.Shell (EmptyDayCount, FailureCount, downloadClubPerformanceReportsFrom)
@@ -47,7 +50,7 @@ downloadOptions :: Parser DownloadOptions
 downloadOptions =
   DownloadOptions
     <$> option
-      readDistrict
+      auto
       ( short 'd'
           <> long "district"
           <> metavar "INT"
@@ -72,7 +75,7 @@ downloadOptions =
           <> value Nothing
       )
     <*> option
-      auto
+      readPositiveInt
       ( short 'r'
           <> long "requests-per-minute"
           <> metavar "INT"
@@ -81,7 +84,7 @@ downloadOptions =
           <> showDefault
       )
     <*> option
-      auto
+      readNonNegativeInt
       ( short 'p'
           <> long "max-empty-days"
           <> metavar "INT"
@@ -90,7 +93,7 @@ downloadOptions =
           <> showDefault
       )
     <*> option
-      auto
+      readNonNegativeInt
       ( short 'f'
           <> long "max-failures"
           <> metavar "INT"
@@ -98,11 +101,26 @@ downloadOptions =
           <> value $$(refineTH 3)
           <> showDefault
       )
+
+readDay :: ReadM Day
+readDay = maybeReader (parseTimeM acceptWhitespace defaultTimeLocale "%F")
  where
   acceptWhitespace = True
-  readDay = maybeReader (parseTimeM acceptWhitespace defaultTimeLocale "%F")
-  readMaybeDay = pure <$> readDay
-  readDistrict = maybeReader (fmap District . readMaybe)
+
+readMaybeDay :: ReadM (Maybe Day)
+readMaybeDay = pure <$> readDay
+
+refineEither :: Predicate p Int => Int -> Either String (Refined p Int)
+refineEither = first displayRefineException . refine
+
+parseIntString :: Predicate p Int => String -> Either String (Refined p Int)
+parseIntString x = refineEither =<< readEither x
+
+readNonNegativeInt :: ReadM (Refined NonNegative Int)
+readNonNegativeInt = eitherReader parseIntString
+
+readPositiveInt :: ReadM (Refined Positive Int)
+readPositiveInt = eitherReader parseIntString
 
 main :: IO ()
 main = do

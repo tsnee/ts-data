@@ -12,4 +12,4 @@ import Prelude
 
 newtype District = District Int
   deriving (CSV.FromField, Eq, FromField, Show, ToField)
-  deriving (FromHttpApiData, HasCodec, ToHttpApiData, ToParamSchema) via Int
+  deriving (FromHttpApiData, HasCodec, Read, ToHttpApiData, ToParamSchema) via Int
