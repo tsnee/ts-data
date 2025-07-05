@@ -19,7 +19,7 @@ import Data.Text qualified as T (show)
 import Data.Time (Day (..), utctDay)
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Katip (Severity (..), logFM, ls, runKatipContextT)
-import Network.HTTP.Client (managerModifyRequest, newManager)
+import Network.HTTP.Client (managerModifyRequest, newManager, redirectCount)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Refined (refineTH)
 import Servant.API (Accept, Capture, Get, MimeUnrender (..), OctetStream, QueryParam, (:>))
@@ -116,7 +116,7 @@ mkServantClientEnv = do
   AppEnv{logEnv} <- ask
   let logHeaders req = do
         runKatipContextT logEnv () "http-headers" $ logFM DebugS $ ls $ show req
-        pure req
+        pure req{redirectCount = 0}
       managerSettings = tlsManagerSettings{managerModifyRequest = logHeaders}
   manager <- liftIO $ newManager managerSettings
   pure $ mkClientEnv manager $ BaseUrl Https "dashboards.toastmasters.org" 443 ""
