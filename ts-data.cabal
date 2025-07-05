@@ -283,7 +283,8 @@ test-suite ts-data-test
         Unit.Libs.Download.Parsers,
         Unit.Libs.Download.Time,
         Unit.Libs.Serve,
-        Unit.Libs.Types.ClubPerformanceReportDescriptor
+        Unit.Libs.Types.ClubPerformanceReportDescriptor,
+        Unit.Common.Sorting
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -312,4 +313,3 @@ test-suite ts-data-test
         time ^>=1.14,
         unliftio ^>=0.2.25.1,
         ts-data
-
