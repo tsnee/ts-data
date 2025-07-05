@@ -3,10 +3,6 @@
 
 module Unit.Libs.Serve where
 
-import Data.Bifunctor (second)
-import Data.List (sortBy)
-import Data.Ord (comparing)
-import Data.Text (Text)
 import Data.Time (pattern YearMonthDay)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
@@ -18,17 +14,7 @@ import Serve.ClubMeasurement (buildIntSeries)
 import Types.ClubMeasurementResponse (Codomain (..), Series (..))
 import Types.ClubMetric (ClubMetric (..))
 import Types.ClubNumber (ClubNumber (..))
-
-sortByFirst :: [Text] -> [a] -> ([Text], [a])
-sortByFirst xs ys = unzip $ (sortBy . comparing) fst $ zip xs ys
-
-sortByDate :: [Series] -> [Series]
-sortByDate seriesList = do
-  Series{label, domain, codomain} <- seriesList
-  let (xs, ys) = case codomain of
-        IntCodomain intCodomain -> second IntCodomain $ sortByFirst domain intCodomain
-        TextCodomain textCodomain -> second TextCodomain $ sortByFirst domain textCodomain
-  pure $ Series label xs ys
+import Unit.Common.Sorting (sortByDate)
 
 tests :: TestTree
 tests =
