@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -14,6 +15,7 @@ module Serve.GroupMetadata
 import Control.Monad.Trans (lift)
 import Data.List.NonEmpty (NonEmpty (..), groupWith)
 import Data.Text (Text)
+import Data.Text qualified as T (show)
 import Data.Time (Day (..), getCurrentTime, utctDay)
 import Katip (Severity (..), logFM, ls)
 import Servant (throwError)
@@ -111,7 +113,7 @@ handleSingleResult unexpectedMsg failureMsg = \case
   Right [] -> throwError err404
   Right [a] -> pure a
   Right unexpected -> do
-    logFM ErrorS $ ls $ unexpectedMsg <> show unexpected
+    logFM ErrorS $ ls $ unexpectedMsg <> T.show unexpected
     throwError err500
   Left err -> do
     logFM ErrorS $ ls $ failureMsg <> err
