@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Unit.Common.Sorting (sortByFirst, sortByDate) where
 
 import Data.Bifunctor (second)
@@ -7,7 +5,7 @@ import Data.List (sortBy)
 import Data.Ord (comparing)
 import Data.Text (Text)
 
-import Types.ClubMeasurementResponse (Codomain(..), Series(..))
+import Types.ClubMeasurementResponse (Codomain (..), Series (..))
 
 -- | Sort a pair of correlated lists by the first list.
 sortByFirst :: [Text] -> [a] -> ([Text], [a])
