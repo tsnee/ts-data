@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OrPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -14,6 +15,7 @@ module Serve.GroupMetadata
 import Control.Monad.Trans (lift)
 import Data.List.NonEmpty (NonEmpty (..), groupWith)
 import Data.Text (Text)
+import Data.Text qualified as T (show)
 import Data.Time (Day (..), getCurrentTime, utctDay)
 import Katip (Severity (..), logFM, ls)
 import Servant (throwError)
@@ -44,15 +46,10 @@ processMetadataRequestForArea district area Nothing = do
 processMetadataRequestForArea district area (Just end) = do
   divisionsAreasClubs <- lift $ loadClubsFor district (Just (Left area)) end
   logFM DebugS $ ls $ "Received " <> show (length divisionsAreasClubs) <> " rows from database."
-  case buildAreaMetadataResponse district divisionsAreasClubs of
-    Right [] -> throwError err404
-    Right [a] -> pure a
-    Right unexpected -> do
-      logFM ErrorS $ ls $ "Expected a list of 0 or 1 AreaMetadataResponses, found " <> show unexpected
-      throwError err500
-    Left err -> do
-      logFM ErrorS $ ls $ "Database lookup for AreaMetadataResponses failed: " <> err
-      throwError err500
+  handleSingleResult
+    "Expected a list of 0 or 1 AreaMetadataResponses, found "
+    "Database lookup for AreaMetadataResponses failed: "
+    (buildAreaMetadataResponse district divisionsAreasClubs)
 
 processMetadataRequestForAreas
   :: District -> Maybe Day -> AppHandler [AreaMetadataResponse]
@@ -64,12 +61,9 @@ processMetadataRequestForAreas district Nothing = do
 processMetadataRequestForAreas district (Just end) = do
   divisionsAreasClubs <- lift $ loadClubsFor district Nothing end
   logFM DebugS $ ls $ "Received " <> show (length divisionsAreasClubs) <> " rows from database."
-  case buildAreaMetadataResponse district divisionsAreasClubs of
-    Right [] -> throwError err404
-    Right responses -> pure responses
-    Left err -> do
-      logFM ErrorS $ ls $ "Database lookup for AreaMetadataResponses failed: " <> err
-      throwError err500
+  handleListResult
+    "Database lookup for AreaMetadataResponses failed: "
+    (buildAreaMetadataResponse district divisionsAreasClubs)
 
 processMetadataRequestForDistrict
   :: District -> Maybe Day -> AppHandler DistrictMetadataResponse
@@ -78,15 +72,10 @@ processMetadataRequestForDistrict district Nothing = do
   processMetadataRequestForDistrict district (Just today)
 processMetadataRequestForDistrict district (Just end) = do
   divisionsAreasClubs <- lift $ loadClubsFor district Nothing end
-  case buildDistrictMetadataResponse district divisionsAreasClubs of
-    Right [] -> throwError err404
-    Right [a] -> pure a
-    Right unexpected -> do
-      logFM ErrorS $ ls $ "Expected a list of 0 or 1 DistrictMetadataResponses, found " <> show unexpected
-      throwError err500
-    Left err -> do
-      logFM ErrorS $ ls $ "Database lookup for DistrictMetadataResponses failed: " <> err
-      throwError err500
+  handleSingleResult
+    "Expected a list of 0 or 1 DistrictMetadataResponses, found "
+    "Database lookup for DistrictMetadataResponses failed: "
+    (buildDistrictMetadataResponse district divisionsAreasClubs)
 
 processMetadataRequestForDivision
   :: District -> Division -> Maybe Day -> AppHandler DivisionMetadataResponse
@@ -95,15 +84,10 @@ processMetadataRequestForDivision district division Nothing = do
   processMetadataRequestForDivision district division (Just today)
 processMetadataRequestForDivision district division (Just end) = do
   divisionsAreasClubs <- lift $ loadClubsFor district (Just (Right division)) end
-  case buildDivisionMetadataResponse district divisionsAreasClubs of
-    Right [] -> throwError err404
-    Right [a] -> pure a
-    Right unexpected -> do
-      logFM ErrorS $ ls $ "Expected a list of 0 or 1 DivisionMetadataResponses, found " <> show unexpected
-      throwError err500
-    Left err -> do
-      logFM ErrorS $ ls $ "Database lookup for DivisionMetadataResponses failed: " <> err
-      throwError err500
+  handleSingleResult
+    "Expected a list of 0 or 1 DivisionMetadataResponses, found "
+    "Database lookup for DivisionMetadataResponses failed: "
+    (buildDivisionMetadataResponse district divisionsAreasClubs)
 
 processMetadataRequestForDivisions
   :: District -> Maybe Day -> AppHandler [DivisionMetadataResponse]
@@ -112,12 +96,28 @@ processMetadataRequestForDivisions district Nothing = do
   processMetadataRequestForDivisions district (Just today)
 processMetadataRequestForDivisions district (Just end) = do
   divisionsAreasClubs <- lift $ loadClubsFor district Nothing end
-  case buildDivisionMetadataResponse district divisionsAreasClubs of
-    Right [] -> throwError err404
-    Right responses -> pure responses
-    Left err -> do
-      logFM ErrorS $ ls $ "Database lookup for DivisionMetadataResponses failed: " <> err
-      throwError err500
+  handleListResult
+    "Database lookup for DivisionMetadataResponses failed: "
+    (buildDivisionMetadataResponse district divisionsAreasClubs)
+
+handleListResult :: Text -> Either Text [a] -> AppHandler [a]
+handleListResult failureMsg = \case
+  Right [] -> throwError err404
+  Right responses -> pure responses
+  Left err -> do
+    logFM ErrorS $ ls $ failureMsg <> err
+    throwError err500
+
+handleSingleResult :: Show a => Text -> Text -> Either Text [a] -> AppHandler a
+handleSingleResult unexpectedMsg failureMsg = \case
+  Right [] -> throwError err404
+  Right [a] -> pure a
+  Right unexpected -> do
+    logFM ErrorS $ ls $ unexpectedMsg <> T.show unexpected
+    throwError err500
+  Left err -> do
+    logFM ErrorS $ ls $ failureMsg <> err
+    throwError err500
 
 buildDistrictMetadataResponse
   :: District -> [(Int, Text, Int, Text, Day)] -> Either Text [DistrictMetadataResponse]
