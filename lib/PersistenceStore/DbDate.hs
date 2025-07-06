@@ -10,6 +10,6 @@ import GHC.Generics (Generic)
 
 newtype DbDate = DbDate {fromDbDate :: Day}
   deriving stock (Eq, Generic)
-  deriving (FromField, Show, ToField) via Day
+  deriving (FromField, Ord, Show, ToField) via Day
 
 instance FromRow DbDate
