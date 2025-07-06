@@ -4,18 +4,25 @@
 module Main where
 
 import Control.Monad.Except (ExceptT (..), runExceptT)
-import Katip (LogItem (..), Severity (..), Verbosity (..))
+import Control.Monad.Reader (ask)
+import Katip (Severity (..), Verbosity (..))
+import Katip.Wai (ApplicationT, middleware, runApplication)
 import Network.HTTP.Types (hContentType)
-import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost, setPort)
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors, simpleCorsResourcePolicy)
 import Options.Applicative (Parser, auto, help, long, metavar, option, short, showDefault, value)
-import Servant (Proxy (..))
-import Servant.API ((:<|>) (..))
-import Servant.Server (Application, Handler (..), ServerT, hoistServer, serve)
-import Servant.Server.StaticFiles (serveDirectoryWebApp)
+import Servant
+  ( Handler (..)
+  , Proxy (..)
+  , ServerT
+  , hoistServer
+  , serve
+  , serveDirectoryWebApp
+  , (:<|>) (..)
+  )
+import UnliftIO (MonadUnliftIO (..))
 
-import AppM (runAppM)
+import AppM (AppM, runAppM)
 import Options (parseWithConf)
 import Serve.Api (Api, AppHandler)
 import Serve.ClubMeasurement (processClubMeasurementRequest)
@@ -28,6 +35,7 @@ import Serve.GroupMetadata
   , processMetadataRequestForDivision
   , processMetadataRequestForDivisions
   )
+import Types.AppEnv (AppEnv (..))
 import Types.Conf (Conf (..))
 import Types.DatabaseName (DatabaseName (..))
 
@@ -64,11 +72,16 @@ server =
 api :: Proxy Api
 api = Proxy
 
-natTrans :: forall a c. LogItem c => Conf -> c -> AppHandler a -> Handler a
-natTrans conf ctx appHandler = Handler $ ExceptT $ runAppM conf ctx (runExceptT appHandler)
+natTrans :: forall a. Conf -> AppHandler a -> Handler a
+natTrans conf appHandler = Handler $ ExceptT $ runAppM conf () (runExceptT appHandler)
 
-mkApp :: LogItem c => Conf -> c -> Application
-mkApp conf ctx = serve api $ hoistServer api (natTrans conf ctx) server
+mkApp :: ApplicationT AppM
+mkApp req respondF = do
+  AppEnv{conf} <- ask
+  let corsMiddleware = cors $ const $ Just corsResourcePolicy
+      hoistedServer = hoistServer api (natTrans conf) server
+      hoistedApp = corsMiddleware $ serve api hoistedServer
+  withRunInIO $ \toIO -> hoistedApp req (toIO . respondF)
 
 corsResourcePolicy :: CorsResourcePolicy
 corsResourcePolicy =
@@ -77,9 +90,6 @@ corsResourcePolicy =
     , corsMethods = ["GET", "POST", "OPTIONS"]
     , corsRequestHeaders = [hContentType]
     }
-
-middleware :: Middleware
-middleware = cors $ const $ Just corsResourcePolicy
 
 main :: IO ()
 main = do
@@ -93,4 +103,8 @@ main = do
         , verbosity = V3
         }
       serverOptions
-  runSettings (setPort port $ setHost "::" defaultSettings) $ middleware $ mkApp conf ()
+  let settings = setPort port $ setHost "::" defaultSettings
+      nt = runAppM conf ()
+      appWithLogging = middleware NoticeS mkApp
+      app = runApplication nt appWithLogging
+  runSettings settings app

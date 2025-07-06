@@ -6,12 +6,9 @@ import Control.Monad (void)
 import Control.Monad.Reader (ReaderT (..), lift, runReaderT)
 import Katip
   ( ColorStrategy (..)
-  , Environment
   , KatipContextT
   , LogEnv
   , LogItem (..)
-  , Namespace
-  , Severity (..)
   , Verbosity (..)
   , closeScribes
   , defaultScribeSettings
@@ -31,12 +28,12 @@ import Types.Conf (Conf (..))
 type AppM = KatipContextT (ReaderT AppEnv IO)
 
 runAppM :: LogItem c => Conf -> c -> AppM a -> IO a
-runAppM conf@Conf{environment, namespace, severity} ctx appM = runResourceT $ do
-  (_, logEnv) <- allocate (initLogging environment namespace severity) $ void . closeScribes
-  lift $ flip runReaderT AppEnv{conf, logEnv} $ runKatipContextT logEnv ctx namespace appM
+runAppM conf ctx appM = runResourceT $ do
+  (_, logEnv) <- allocate (initLogging conf) $ void . closeScribes
+  lift $ flip runReaderT AppEnv{conf, logEnv} $ runKatipContextT logEnv ctx (namespace conf) appM
 
-initLogging :: Environment -> Namespace -> Severity -> IO LogEnv
-initLogging env ns severity = do
+initLogging :: Conf -> IO LogEnv
+initLogging Conf{environment, namespace, severity} = do
   handleScribe <- mkHandleScribe ColorIfTerminal stdout (permitItem severity) V3
-  logEnv <- initLogEnv ns env
+  logEnv <- initLogEnv namespace environment
   registerScribe "stdout" handleScribe defaultScribeSettings logEnv

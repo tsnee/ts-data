@@ -251,6 +251,7 @@ executable server
         base >=4.17,
         http-types ^>=0.12.4,
         katip ^>=0.8.8.2,
+        katip-wai ^>=0.2.0.0,
         mtl ^>=2.3.1,
         servant ^>=0.20.3,
         servant-server ^>=0.20.3,
