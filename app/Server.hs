@@ -7,7 +7,7 @@ import Control.Monad.Except (ExceptT (..), runExceptT)
 import Katip (LogItem (..), Severity (..), Verbosity (..))
 import Network.HTTP.Types (hContentType)
 import Network.Wai (Middleware)
-import Network.Wai.Handler.Warp (run)
+import Network.Wai.Handler.Warp (defaultSettings, runSettings, setHost, setPort)
 import Network.Wai.Middleware.Cors (CorsResourcePolicy (..), cors, simpleCorsResourcePolicy)
 import Options.Applicative (Parser, auto, help, long, metavar, option, short, showDefault, value)
 import Servant (Proxy (..))
@@ -93,4 +93,4 @@ main = do
         , verbosity = V3
         }
       serverOptions
-  run port $ middleware $ mkApp conf ()
+  runSettings (setPort port $ setHost "::" defaultSettings) $ middleware $ mkApp conf ()
